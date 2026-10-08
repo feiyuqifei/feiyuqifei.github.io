@@ -15,6 +15,7 @@
     "test:theme": "node scripts/test-theme-toggle.mjs",
     "test:copy": "node scripts/test-copy-button.mjs",
     "check:md": "node scripts/check-markdown-render.mjs",
+    "check:style": "node scripts/check-style.mjs",
     "deploy:zip": "python scripts/make-deploy-zip.py",
     "check:workflow": "python scripts/check-workflow.py",
     "assets": "python scripts/make-assets.py",

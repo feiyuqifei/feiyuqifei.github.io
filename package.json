@@ -14,6 +14,9 @@
     "check": "astro check",
     "test:theme": "node scripts/test-theme-toggle.mjs",
     "test:copy": "node scripts/test-copy-button.mjs",
+    "deploy:zip": "python scripts/make-deploy-zip.py",
+    "check:workflow": "python scripts/check-workflow.py",
+    "assets": "python scripts/make-assets.py",
     "astro": "astro"
   },
   "dependencies": {

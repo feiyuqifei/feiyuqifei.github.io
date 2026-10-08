@@ -30,3 +30,6 @@ public/pagefind/
 
 # 本地视觉自检截图（临时产物，不属于站点资源）
 _shots/
+
+# 拖拽部署用的压缩包（由 pnpm run deploy:zip 生成）
+feiyu-site-*.zip

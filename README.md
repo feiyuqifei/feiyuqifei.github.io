@@ -180,6 +180,8 @@ blog/
 
 ## 部署
 
+### 方式一：GitHub Pages（已配好自动部署）
+
 推到 `main` 分支即自动部署，工作流在 `.github/workflows/deploy.yml`。
 
 **首次部署前必须在 GitHub 上做一件事**：
@@ -188,6 +190,39 @@ blog/
 > 不设置的话工作流会在部署步骤报权限错误。
 
 以后每次 `git push` 都会自动重新构建并上线，通常 1–2 分钟生效。
+
+#### ⚠️ CI 的两个环境约束（改工作流时别踩）
+
+1. **pnpm 必须是 11**。项目用 `pnpm-workspace.yaml` 的 `allowBuilds` 放行
+   esbuild 的构建脚本，这是 pnpm 11 的配置项；pnpm 10 不认识它会静默跳过
+   esbuild 的 postinstall，导致 CI 构建找不到二进制而失败。
+2. **Node 必须 ≥ 22.12**。这是 `engines` 与 Astro 7 的共同要求。
+
+改完工作流可以用这个脚本自检（不需要联网）：
+
+```powershell
+pnpm run check:workflow    # 校验权限、action 版本、关键步骤，共 28 项
+```
+
+### 方式二：拖拽部署（不需要 Git、不需要密钥）
+
+如果不想折腾 SSH 密钥，可以把构建产物打包后直接拖到
+[Cloudflare Pages](https://pages.cloudflare.com/) 或
+[Netlify Drop](https://app.netlify.com/drop)。
+
+```powershell
+pnpm run deploy:zip
+```
+
+这个命令会先做**上线前完整性校验**，再打出压缩包：
+
+- 必需文件是否齐全（404.html、rss.xml、sitemap、搜索索引、KaTeX 字体）
+- 是否误把构建中间产物（`.prerender/`）打进去
+- **所有 HTML 里引用的站内资源是否真实存在** —— 这是提前发现 404 最有效的手段
+- 标签页数量是否与文章里的标签集合一致
+
+通过后生成 `feiyu-site-<时间戳>.zip`，里面文件在**根层级**
+（拖拽部署平台要求如此，误套一层 `dist/` 目录会部署失败）。
 
 ---
 

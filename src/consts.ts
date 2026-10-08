@@ -40,7 +40,7 @@ export const SECTIONS = {
     key: 'tech',
     name: '技术文章',
     short: '文章',
-    desc: '安全研究、CTF 复盘、源码阅读、踩坑记录',
+    desc: '网络工程、安全研究、CTF 复盘、硬件与嵌入式、踩坑记录',
     icon: '◆',
   },
   tools: {

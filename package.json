@@ -9,10 +9,11 @@
   },
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build && pagefind --site dist",
-    "build:only": "astro build",
+    "build": "astro build",
     "preview": "astro preview",
     "check": "astro check",
+    "test:theme": "node scripts/test-theme-toggle.mjs",
+    "test:copy": "node scripts/test-copy-button.mjs",
     "astro": "astro"
   },
   "dependencies": {

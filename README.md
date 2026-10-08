@@ -29,22 +29,55 @@
 
 ## 本地开发
 
-本机没有全局 npm，用 pnpm 即可。
+本机没有全局 npm，用 pnpm 即可（**必须是 pnpm 11**，原因见下方"构建"一节）。
 
 ```powershell
+# 安装依赖
+pnpm install
+
 # 启动开发服务器（改文件自动刷新）
 pnpm dev
 
-# 构建生产版本（含 Pagefind 搜索索引）
+# 构建生产版本（astro build 会自动生成 Pagefind 搜索索引）
 pnpm run build
 
 # 本地预览构建产物
 pnpm preview
+
+# 类型检查（应为 0 errors / 0 warnings / 0 hints）
+pnpm run check
+
+# 交互功能的端到端测试（需要先 build + preview）
+pnpm run test:theme    # 主题切换：真实鼠标点击 + 刷新后保持
+pnpm run test:copy     # 代码复制：真实点击 + 校验剪贴板实际内容
 ```
 
 > ⚠️ **搜索只在 `build` 之后可用**。
 > `astro dev` 下没有 `/pagefind/` 索引，搜索按钮会被自动隐藏；
 > 要测试搜索请先 `pnpm run build`，再 `pnpm preview`。
+
+> ℹ️ 两个 `test:*` 脚本通过 Chrome DevTools Protocol 驱动真实浏览器，
+> 用的是**合成鼠标事件**而非 `element.click()`。因此它们能发现
+> "元素存在但点不到"这类问题（例如元素在视口之外）。
+> 脚本会自动设置足够高的视口并在点击前滚入视野，无需手动干预。
+
+---
+
+## 构建
+
+```powershell
+pnpm run build
+```
+
+这条命令只做一件事：`astro build`。
+搜索索引由 `astro-pagefind` 集成在构建结束的钩子里自动生成，
+**不需要也不要再单独调用 `pagefind` CLI** —— 那会重复索引一遍，
+而且 `pagefind` 并非本项目依赖，调用它需要额外的网络下载。
+
+**pnpm 版本要求 ≥ 11**：项目在 `pnpm-workspace.yaml` 里用 `allowBuilds`
+放行 `esbuild` 的构建脚本，这是 pnpm 11 的配置项。
+pnpm 10 不认识它，会静默跳过 esbuild 的 postinstall，
+导致构建时找不到 esbuild 二进制。GitHub Actions 工作流里已固定为 11。
 
 ---
 

@@ -35,14 +35,18 @@ jobs:
         uses: actions/checkout@v4
 
       - name: 配置 pnpm
-        # 版本要与本地一致，避免 lockfile 格式差异导致 CI 安装失败
+        # 必须与本地开发用的 pnpm 大版本一致。
+        # 本项目在 pnpm-workspace.yaml 里用 allowBuilds 放行 esbuild 的构建脚本，
+        # 这是 pnpm 11 的配置项：pnpm 10 不认识它，会静默跳过 esbuild 的
+        # postinstall，导致 Astro 构建时找不到 esbuild 二进制而失败。
         uses: pnpm/action-setup@v4
         with:
-          version: 10
+          version: 11
 
       - name: 配置 Node
         uses: actions/setup-node@v4
         with:
+          # engines 与 Astro 7 都要求 >=22.12.0
           node-version: 22
           cache: pnpm
 
@@ -52,7 +56,8 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: 构建站点
-        # 这个命令会依次执行 astro build 和 pagefind 索引生成
+        # astro build 会通过 astro-pagefind 集成自动生成搜索索引，
+        # 不需要（也不应该）再单独调用 pagefind CLI
         run: pnpm run build
 
       - name: 配置 Pages

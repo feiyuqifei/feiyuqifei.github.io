@@ -96,14 +96,22 @@ export const GISCUS = {
 } as const;
 
 /**
- * Umami Cloud 访问统计（无 Cookie，国内加载相对稳定）
- * 开启步骤：
+ * Umami Cloud 访问统计（无 Cookie、不采集个人数据）
+ *
+ * 隐私说明（写在配置里，避免日后自己都忘了）：
+ *   - Umami 不使用 Cookie，不跨站跟踪，不做指纹识别
+ *   - 它记录的是页面浏览量、来源、国家/地区、设备类型这类聚合指标
+ *   - 因此本站不需要 Cookie 同意弹窗
+ *   - 唯一被加载的第三方脚本就是它（见下方 scriptSrc），
+ *     除此之外页面不引用任何外部 JS
+ *
+ * 开启步骤（已完成，留档备查）：
  *   1. https://cloud.umami.is 注册
  *   2. Add website，填入 https://feiyuqifei.github.io
  *   3. 在网站 Settings → Tracking code 里拿到 script src 和 data-website-id
  */
 export const UMAMI = {
-  enabled: false,
-  scriptSrc: '',
-  websiteId: '',
+  enabled: true,
+  scriptSrc: 'https://cloud.umami.is/script.js',
+  websiteId: '69ad8fb5-fa2e-4bd7-923a-7a5fdc97f8e0',
 } as const;

@@ -1,0 +1,63 @@
+---
+/**
+ * 归档页：按年份分组列出全部文章。
+ * 只列标题和日期，不放摘要——归档页的价值是"一眼看全"，
+ * 加摘要反而会让页面变得很长、难以扫读。
+ */
+import Layout from '../layouts/Layout.astro';
+import { withBase } from '../utils/url';
+import { formatDate } from '../utils/date';
+import { getPublishedPosts } from '../utils/render-posts';
+import { groupByYear, sectionName } from '../utils/posts';
+
+const posts = await getPublishedPosts();
+const groups = groupByYear(posts);
+---
+
+<Layout title="归档" description="按时间顺序浏览全部文章">
+  <header class="page-head">
+    <nav class="breadcrumb" aria-label="面包屑">
+      <a href={withBase('/')}>首页</a>
+      <span> / </span>
+      <span>归档</span>
+    </nav>
+    <h1>归档</h1>
+    <p class="page-desc">
+      共 {posts.length} 篇文章，跨 {groups.length} 个年份。
+    </p>
+  </header>
+
+  {
+    groups.map((group) => (
+      <section class="archive-year" aria-label={`${group.year} 年`}>
+        <h2>
+          {group.year} <span style="color:var(--text-faint);font-size:.8em">
+            （{group.posts.length} 篇）
+          </span>
+        </h2>
+        <ul>
+          {group.posts.map((post) => {
+            const section = post.id.includes('/') ? post.id.slice(0, post.id.indexOf('/')) : '';
+            return (
+              <li>
+                <span class="archive-date">
+                  {formatDate(post.data.pubDate, 'short').slice(5)}
+                </span>
+                <a href={withBase(`/${post.id}/`)}>{post.data.title}</a>
+                {section && (
+                  <span style="color:var(--text-faint);font-size:.82em;margin-inline-start:auto">
+                    {sectionName(section)}
+                  </span>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+    ))
+  }
+
+  {
+    groups.length === 0 && <p class="empty">还没有文章。</p>
+  }
+</Layout>

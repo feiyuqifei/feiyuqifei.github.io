@@ -1,0 +1,66 @@
+---
+/**
+ * 关于页。
+ *
+ * 正文来自 src/content/posts/about.md —— 这样"关于我"也能用 Markdown 写，
+ * 不用在 Astro 模板里拼 HTML。增删内容只改 Markdown 文件即可。
+ *
+ * 该文件在内容集合里 id 为 "about"（位于 posts 根目录），
+ * 已被 [...slug].astro 排除，不会生成重复路由。
+ */
+import { getEntry, render } from 'astro:content';
+import Layout from '../layouts/Layout.astro';
+import { SITE, SOCIALS } from '../consts';
+import { withBase } from '../utils/url';
+import '../styles/katex.css';
+
+const entry = await getEntry('posts', 'about');
+
+if (!entry) {
+  return Astro.redirect('/404');
+}
+
+const { Content } = await render(entry);
+---
+
+<Layout title="关于" description={entry.data.description ?? SITE.author.bio}>
+  <article class="article">
+    <header class="page-head">
+      <nav class="breadcrumb" aria-label="面包屑">
+        <a href={withBase('/')}>首页</a>
+        <span> / </span>
+        <span>关于</span>
+      </nav>
+    </header>
+
+    <div class="about-grid">
+      {
+        /*
+          头像：优先用 public/avatar.png，没有就退化成首字母方块。
+          用 <img> 而不是 Astro 的 <Image>，因为 public 下的文件
+          不参与图片优化管线，这里也不需要（头像本来就很小）。
+        */
+      }
+      <img class="avatar" src={withBase('/avatar.svg')} alt={`${SITE.author.name} 的头像`} width="132" height="132" />
+
+      <div>
+        <p class="about-name">{SITE.author.name}</p>
+        <p class="about-bio">{SITE.author.bio}</p>
+        <p style="margin-top:.9rem;display:flex;gap:1rem;flex-wrap:wrap;font-size:.88rem">
+          {
+            SOCIALS.filter((s) => s.icon !== 'rss').map((s) => (
+              <a href={s.href} rel="noopener noreferrer" target="_blank">
+                {s.name}
+              </a>
+            ))
+          }
+          <a href={withBase('/rss.xml')}>RSS</a>
+        </p>
+      </div>
+    </div>
+
+    <div class="prose" data-prose>
+      <Content />
+    </div>
+  </article>
+</Layout>

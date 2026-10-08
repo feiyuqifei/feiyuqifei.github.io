@@ -1,0 +1,60 @@
+---
+/**
+ * 文章列表卡片（用于首页、板块页、标签页）。
+ *
+ * 只依赖结构化的 frontmatter 数据，不依赖 Astro 的 render API，
+ * 所以可以在任何列表页复用。结构类型与 src/utils/posts.ts 的 PostLike 对齐。
+ */
+import { formatDate, toISODate } from '../utils/date';
+import { sectionName } from '../utils/posts';
+import { withBase } from '../utils/url';
+
+interface Props {
+  id: string;
+  title: string;
+  description?: string;
+  pubDate: Date;
+  tags?: string[];
+  /** 是否显示所属板块标签（板块页内不必重复显示） */
+  showSection?: boolean;
+  /** Unix 毫秒时间戳，用于 HTML 属性序列化时保持一致 */
+  readingLabel?: string;
+}
+
+const { id, title, description, pubDate, tags = [], showSection = true, readingLabel } = Astro.props;
+
+const section = id.includes('/') ? id.slice(0, id.indexOf('/')) : '';
+const href = withBase(`/${id}/`);
+---
+
+<li class="post-item">
+  <div class="post-meta">
+    {showSection && section && <span class="post-section">{sectionName(section)}</span>}
+    <time datetime={toISODate(pubDate)}>{formatDate(pubDate, 'long')}</time>
+    {readingLabel && <span>{readingLabel}</span>}
+  </div>
+
+  <h3 class="post-title">
+    <a href={href}>{title}</a>
+  </h3>
+
+  {description && <p class="post-desc">{description}</p>}
+
+  {
+    tags.length > 0 && (
+      <div class="post-tags">
+        {/*
+          标签名可能是中文。这里刻意不做 encodeURIComponent：
+          Astro 构建动态路由时会对 params 再做一次编码，
+          手工编码会导致双重编码（%25E5%25AE%...）而匹配不到页面。
+          直接传原始标签名，交给 Astro 处理。
+        */}
+        {tags.map((tag) => (
+          <a class="tag" href={withBase(`/tags/${tag}/`)}>
+            #{tag}
+          </a>
+        ))}
+      </div>
+    )
+  }
+</li>

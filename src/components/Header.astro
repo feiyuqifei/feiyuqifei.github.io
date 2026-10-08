@@ -1,0 +1,44 @@
+---
+/**
+ * 全站顶栏：品牌、导航、搜索、主题切换。
+ * 吸顶 + 毛玻璃，见 global.css 的 .site-header。
+ */
+import { SITE, NAV } from '../consts';
+import { withBase } from '../utils/url';
+import Logo from './Logo.astro';
+import ThemeToggle from './ThemeToggle.astro';
+import Search from './Search.astro';
+
+// 当前路径，用于导航高亮。统一去掉结尾斜杠再比较。
+const current = Astro.url.pathname.replace(/\/+$/, '') || '/';
+
+function isActive(href: string): boolean {
+  const target = href.replace(/\/+$/, '') || '/';
+  if (target === '/') return current === '/';
+  // 板块页 /tech/ 下所有文章也应高亮该板块
+  return current === target || current.startsWith(`${target}/`);
+}
+---
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href={withBase('/')} aria-label={`${SITE.name} 首页`}>
+      <Logo />
+      <span>{SITE.name}</span>
+      <span class="brand-en">{SITE.nameEn}</span>
+    </a>
+
+    <nav class="nav" aria-label="主导航">
+      {
+        NAV.map((item) => (
+          <a href={withBase(item.href)} aria-current={isActive(item.href) ? 'page' : undefined}>
+            {item.text}
+          </a>
+        ))
+      }
+    </nav>
+
+    <Search />
+    <ThemeToggle />
+  </div>
+</header>

@@ -1,0 +1,51 @@
+---
+/**
+ * 飞鱼 · 站点 Logo
+ *
+ * 图形语言：一条跃出水面的飞鱼 —— 上半是展开的翼（跃出），
+ * 下半是水面波纹（深潜）。用 currentColor 描边，自动跟随文字颜色。
+ * 纯内联 SVG，无外部请求。
+ */
+interface Props {
+  class?: string;
+  size?: number;
+}
+
+/*
+ * 注意：不要写成 const { class: className = 'brand-mark' }: Props = Astro.props，
+ * Astro 编译器不接受解构默认值位置上的类型注解（会报 Expected `{` but found `?`）。
+ * 先解构、再显式收窄，是更稳妥的写法。
+ */
+const { class: className, size } = Astro.props;
+const markClass: string = className ?? 'brand-mark';
+const markSize: number = size ?? 26;
+---
+
+<svg
+  class={markClass}
+  width={markSize}
+  height={markSize}
+  viewBox="0 0 32 32"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="1.7"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+  role="img"
+  aria-label="飞鱼"
+>
+  <!-- 身体：一道跃起的弧线 -->
+  <path
+    d="M4 19c4.5-6.5 10-9.5 16.5-9.5 2.5 0 4.5.6 6 1.6-1.2 1.3-2 2.6-2.4 3.9 1.4.3 2.7.9 3.9 1.9-3 1.7-6.6 2.6-10.8 2.6"
+  ></path>
+  <!-- 背鳍 / 展开的翼 -->
+  <path d="M13.5 10.5C14 6.8 15.6 4.2 18.2 2.5c.6 2.6.5 5-.3 7.1"></path>
+  <!-- 尾鳍 -->
+  <path d="M6.8 14.4c-2-1.5-3.3-3.3-4-5.4 2.6.4 4.7 1.4 6.2 3"></path>
+  <!-- 眼睛 -->
+  <circle cx="22.4" cy="15.4" r="0.9" fill="currentColor" stroke="none"></circle>
+  <!-- 水面波纹 -->
+  <path
+    d="M3 25.5c2.6-1.8 5.2-1.8 7.8 0s5.2 1.8 7.8 0 5.2-1.8 7.8 0"
+    opacity="0.55"></path>
+</svg>

@@ -1,0 +1,157 @@
+---
+/**
+ * 文章详情页（动态路由）。
+ *
+ * 为什么用 catch-all（[...slug]）而不是 [slug]：
+ *   文章 id 是带板块前缀的（tech/foo、tools/bar），是嵌套路径。
+ *   catch-all 的参数是数组，能一次吃下任意层级，
+ *   不需要为每个板块单独建路由文件。
+ *
+ * URL 形如 /tech/http-request-smuggling/ ，与 entry.id 一一对应。
+ */
+import { getCollection, getEntry, render } from 'astro:content';
+import Layout from '../layouts/Layout.astro';
+import TableOfContents from '../components/TableOfContents.astro';
+import Giscus from '../components/Giscus.astro';
+import { SITE } from '../consts';
+import { formatDate, toISODate } from '../utils/date';
+import { sectionName, relatedPosts } from '../utils/posts';
+import { withBase } from '../utils/url';
+import { filterPublished } from '../utils/posts';
+import { getPublishedPosts, toCardData, estimateReading } from '../utils/render-posts';
+import '../styles/katex.css';
+
+export async function getStaticPaths() {
+  const posts = await getCollection('posts', ({ data }) => !data.draft);
+
+  return posts
+    // 关于页有独立路由 /about/，不参与文章路由，否则会冲突
+    .filter((post) => post.id !== 'about')
+    .map((post) => ({
+      params: { slug: post.id },
+      props: { id: post.id },
+    }));
+}
+
+interface Props {
+  id: string;
+}
+
+const { id } = Astro.props;
+
+const post = await getEntry('posts', id);
+if (!post) {
+  return Astro.redirect('/404');
+}
+
+const { Content, headings } = await render(post);
+
+const section = id.includes('/') ? id.slice(0, id.indexOf('/')) : '';
+const reading = estimateReading(post);
+
+// 相关文章：优先标签重合度高的
+const allPosts = filterPublished(await getPublishedPosts());
+const related = relatedPosts(post, allPosts, 3).map(toCardData);
+
+const updated =
+  post.data.updatedDate && post.data.updatedDate.getTime() !== post.data.pubDate.getTime()
+    ? post.data.updatedDate
+    : null;
+---
+
+<Layout
+  title={post.data.title}
+  description={post.data.description}
+  type="article"
+  image={post.data.cover}
+  pubDate={post.data.pubDate}
+  updatedDate={updated ?? undefined}
+  tags={post.data.tags}
+>
+  <article class="article">
+    <header class="article-header">
+      {
+        section && (
+          <nav class="breadcrumb" aria-label="面包屑">
+            <a href={withBase('/')}>首页</a>
+            <span> / </span>
+            <a href={withBase(`/${section}/`)}>{sectionName(section)}</a>
+          </nav>
+        )
+      }
+
+      <h1>{post.data.title}</h1>
+
+      <div class="article-meta">
+        <time datetime={toISODate(post.data.pubDate)}>{formatDate(post.data.pubDate, 'long')}</time>
+        <span aria-hidden="true">·</span>
+        <span>{reading}</span>
+        {
+          updated && (
+            <>
+              <span aria-hidden="true">·</span>
+              <span>
+                更新于 <time datetime={toISODate(updated)}>{formatDate(updated, 'long')}</time>
+              </span>
+            </>
+          )
+        }
+      </div>
+
+      {
+        (post.data.tags ?? []).length > 0 && (
+          <div class="article-tags">
+            {(post.data.tags ?? []).map((tag) => (
+              <a class="tag" href={withBase(`/tags/${tag}/`)}>
+                #{tag}
+              </a>
+            ))}
+          </div>
+        )
+      }
+    </header>
+
+    <div class="article-layout">
+      <div class="prose" data-prose>
+        <Content />
+      </div>
+      <TableOfContents headings={headings} />
+    </div>
+
+    <footer class="article-footer">
+      <p>
+        本文由 {post.data.author ?? SITE.author.name} 撰写，采用
+        <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="license noopener noreferrer" target="_blank">
+          CC BY-NC-SA 4.0
+        </a>
+        许可协议。转载请注明出处。
+      </p>
+      <div class="article-footer-actions">
+        <a class="btn" href={withBase('/archive/')}>全部文章</a>
+        <a class="btn" href={withBase('/rss.xml')}>RSS 订阅</a>
+      </div>
+    </footer>
+
+    {
+      related.length > 0 && (
+        <section aria-label="相关文章" style="margin-top:2.5rem;max-width:68ch">
+          <div class="list-head">
+            <h2>相关文章</h2>
+          </div>
+          <ul class="post-list">
+            {related.map((item) => (
+              <li class="post-item">
+                <h3 class="post-title">
+                  <a href={withBase(`/${item.id}/`)}>{item.title}</a>
+                </h3>
+                {item.description && <p class="post-desc">{item.description}</p>}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )
+    }
+
+    <Giscus />
+  </article>
+</Layout>

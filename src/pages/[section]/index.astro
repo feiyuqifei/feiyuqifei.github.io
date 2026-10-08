@@ -1,0 +1,91 @@
+---
+/**
+ * 板块页（技术文章 / 工具分享）。
+ *
+ * 一个动态路由覆盖全部板块：板块列表来自 src/consts.ts 的 SECTIONS，
+ * 以后加新板块只要建目录 + 加配置，不需要再写页面文件。
+ */
+import Layout from '../../layouts/Layout.astro';
+import PostCard from '../../components/PostCard.astro';
+import Pagination from '../../components/Pagination.astro';
+import { SECTIONS, SITE } from '../../consts';
+import { withBase } from '../../utils/url';
+import {
+  getPublishedPosts,
+  toCardData,
+  estimateReading,
+  paginate,
+  totalPages,
+  type PostEntry,
+} from '../../utils/render-posts';
+
+export async function getStaticPaths() {
+  return Object.values(SECTIONS).map((section) => ({
+    params: { section: section.key },
+    props: { key: section.key },
+  }));
+}
+
+interface Props {
+  key: string;
+}
+
+const { key } = Astro.props;
+const section = SECTIONS[key as keyof typeof SECTIONS];
+
+if (!section) {
+  return Astro.redirect('/404');
+}
+
+const all = (await getPublishedPosts()).filter((post: PostEntry) =>
+  post.id.startsWith(`${key}/`)
+);
+
+const perPage = SITE.postsPerPage;
+const pages = totalPages(all.length, perPage);
+const pagePosts = paginate(all, 1, perPage) ?? [];
+
+const cards = pagePosts.map((post) => ({
+  data: toCardData(post),
+  reading: estimateReading(post),
+}));
+---
+
+<Layout title={section.name} description={section.desc}>
+  <header class="page-head">
+    <nav class="breadcrumb" aria-label="面包屑">
+      <a href={withBase('/')}>首页</a>
+      <span> / </span>
+      <span>{section.name}</span>
+    </nav>
+    <h1>{section.name}</h1>
+    <p class="page-desc">{section.desc}</p>
+  </header>
+
+  <div class="list-head">
+    <h2>全部{section.short}</h2>
+    <span class="count">{all.length} 篇</span>
+  </div>
+
+  {
+    cards.length > 0 ? (
+      <ul class="post-list">
+        {cards.map((card) => (
+          <PostCard
+            id={card.data.id}
+            title={card.data.title}
+            description={card.data.description}
+            pubDate={card.data.pubDate}
+            tags={card.data.tags}
+            readingLabel={card.reading}
+            showSection={false}
+          />
+        ))}
+      </ul>
+    ) : (
+      <p class="empty">这个板块还没有文章。</p>
+    )
+  }
+
+  <Pagination current={1} total={pages} base={`/${key}`} />
+</Layout>

@@ -1,0 +1,108 @@
+---
+/**
+ * 板块页第 2 页起的静态分页。
+ *
+ * 为什么不做成 [section]/[...page].astro 一个文件：
+ * catch-all 会把 /tech/ 根路径也匹配进来，与 [section]/index.astro 冲突。
+ * 拆成两个文件后路由边界清晰：/tech/ 走 index，/tech/page/N/ 走这里。
+ */
+import Layout from '../../../layouts/Layout.astro';
+import PostCard from '../../../components/PostCard.astro';
+import Pagination from '../../../components/Pagination.astro';
+import { SECTIONS, SITE } from '../../../consts';
+import { withBase } from '../../../utils/url';
+import {
+  getPublishedPosts,
+  toCardData,
+  estimateReading,
+  paginate,
+  totalPages,
+  type PostEntry,
+} from '../../../utils/render-posts';
+
+export async function getStaticPaths() {
+  const posts = await getPublishedPosts();
+  const perPage = SITE.postsPerPage;
+  const paths: Array<{ params: { section: string; page: string }; props: { key: string; page: number } }> = [];
+
+  for (const section of Object.values(SECTIONS)) {
+    const inSection = posts.filter((post: PostEntry) => post.id.startsWith(`${section.key}/`));
+    const pages = totalPages(inSection.length, perPage);
+
+    // 从第 2 页开始生成，第 1 页由 [section]/index.astro 负责
+    for (let page = 2; page <= pages; page++) {
+      paths.push({
+        params: { section: section.key, page: String(page) },
+        props: { key: section.key, page },
+      });
+    }
+  }
+
+  return paths;
+}
+
+interface Props {
+  key: string;
+  page: number;
+}
+
+const { key, page } = Astro.props;
+const section = SECTIONS[key as keyof typeof SECTIONS];
+
+if (!section) {
+  return Astro.redirect('/404');
+}
+
+const all = (await getPublishedPosts()).filter((post: PostEntry) =>
+  post.id.startsWith(`${key}/`)
+);
+const perPage = SITE.postsPerPage;
+const pages = totalPages(all.length, perPage);
+const pagePosts = paginate(all, page, perPage);
+
+// 页码越界（例如手工构造 /tech/page/99/）不应生成页面
+if (pagePosts === null) {
+  return Astro.redirect('/404');
+}
+
+const cards = pagePosts.map((post) => ({
+  data: toCardData(post),
+  reading: estimateReading(post),
+}));
+---
+
+<Layout
+  title={`${section.name} · 第 ${page} 页`}
+  description={section.desc}
+  noindex
+>
+  <header class="page-head">
+    <nav class="breadcrumb" aria-label="面包屑">
+      <a href={withBase('/')}>首页</a>
+      <span> / </span>
+      <a href={withBase(`/${key}/`)}>{section.name}</a>
+      <span> / </span>
+      <span>第 {page} 页</span>
+    </nav>
+    <h1>{section.name}</h1>
+    <p class="page-desc">第 {page} 页，共 {pages} 页</p>
+  </header>
+
+  <ul class="post-list">
+    {
+      cards.map((card) => (
+        <PostCard
+          id={card.data.id}
+          title={card.data.title}
+          description={card.data.description}
+          pubDate={card.data.pubDate}
+          tags={card.data.tags}
+          readingLabel={card.reading}
+          showSection={false}
+        />
+      ))
+    }
+  </ul>
+
+  <Pagination current={page} total={pages} base={`/${key}`} />
+</Layout>

@@ -1,0 +1,32 @@
+/* ==========================================================================
+   KaTeX 数学公式样式
+   --------------------------------------------------------------------------
+   KaTeX 的 CSS 不能直接 import：它引用的字体文件在 node_modules 里，
+   构建后路径会失效。所以只引入它自带的样式表并把字体指向 CDN，
+   或者（更稳的做法）在 astro.config 里用 rehype-katex 的 output 选项。
+
+   这里采用官方推荐做法：直接 import katex 的 CSS，
+   由 Astro/Vite 处理字体资源的打包与指纹化。
+   ========================================================================== */
+
+@import 'katex/dist/katex.min.css';
+
+/* 块级公式：允许横向滚动，避免长公式在手机上撑破布局 */
+.prose .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-block: 0.5rem;
+  margin-block: 1.4em;
+}
+
+/* 行内公式略微缩小，避免破坏中文行高 */
+.prose .katex {
+  font-size: 1.02em;
+}
+
+/* 公式在暗色模式下不需要特殊处理（KaTeX 只用 currentColor），
+   但分数线和根号线在深色背景上会偏淡，稍微加强一点 */
+:root[data-theme='dark'] .prose .katex .frac-line,
+:root[data-theme='dark'] .prose .katex .sqrt > .root {
+  border-color: currentColor;
+}

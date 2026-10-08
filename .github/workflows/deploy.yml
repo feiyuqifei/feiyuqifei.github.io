@@ -1,0 +1,75 @@
+# 构建 Astro 站点并部署到 GitHub Pages
+#
+# 触发条件：推送到 main 分支，或手动在 Actions 页面触发。
+#
+# 重要：仓库的 Settings → Pages → Source 必须选择 "GitHub Actions"，
+# 否则这个工作流会在 deploy 步骤报权限错误。
+# 这是最容易漏掉的一步，且报错信息不直观。
+
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  # 允许手动触发，方便改完设置后重新部署
+  workflow_dispatch:
+
+# 授予 GITHUB_TOKEN 部署到 Pages 所需的最小权限
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 同一时间只允许一个部署在跑。
+# cancel-in-progress: false 表示排队而不是打断正在进行的部署，
+# 避免把已经发布到一半的站点打断。
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 配置 pnpm
+        # 版本要与本地一致，避免 lockfile 格式差异导致 CI 安装失败
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: 配置 Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: 安装依赖
+        # --frozen-lockfile 保证 CI 用的是锁定的版本，
+        # 不会因为上游发新版而突然构建失败
+        run: pnpm install --frozen-lockfile
+
+      - name: 构建站点
+        # 这个命令会依次执行 astro build 和 pagefind 索引生成
+        run: pnpm run build
+
+      - name: 配置 Pages
+        uses: actions/configure-pages@v5
+
+      - name: 上传构建产物
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: 部署到 GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

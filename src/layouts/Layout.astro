@@ -1,0 +1,166 @@
+---
+/**
+ * 全站基础布局：HTML 骨架、SEO、顶栏、页脚、脚本注入。
+ * 所有页面都应通过这个布局渲染。
+ */
+import { SITE, UMAMI } from '../consts';
+import { absoluteUrl } from '../utils/url';
+import { THEME_INIT_SCRIPT } from '../scripts/theme-init';
+import { COPY_BUTTON_SCRIPT } from '../scripts/copy-code';
+import SEO from '../components/SEO.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description?: string;
+  image?: string;
+  type?: 'website' | 'article';
+  pubDate?: Date;
+  updatedDate?: Date;
+  tags?: string[];
+  noindex?: boolean;
+}
+
+/*
+ * 用逐个参数注解，而不是给整个解构模式加 `: Props`。
+ * Astro 编译器在解构默认值与类型注解混用时会解析失败
+ * （表现为 Expected `{` but found `?`，或变量被当成未定义），
+ * 逐个注解可以完全避开这个坑。
+ */
+const {
+  title,
+  description,
+  image,
+  type = 'website',
+  pubDate,
+  updatedDate,
+  tags,
+  noindex,
+}: Props = Astro.props;
+---
+
+<!doctype html>
+<html lang={SITE.lang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    {/*
+      防闪白：必须 is:inline。
+      Astro 默认把 <script> 打包成 type="module"（延迟执行），
+      那样首帧会先按浅色渲染再跳成深色。is:inline 保留同步内联语义，
+      在首次绘制前就把 data-theme 写好。
+    */}
+    <script is:inline set:html={THEME_INIT_SCRIPT} />
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <SEO
+      title={title}
+      description={description}
+      path={Astro.url.pathname}
+      image={image}
+      type={type}
+      pubDate={pubDate}
+      updatedDate={updatedDate}
+      tags={tags}
+      noindex={noindex}
+    />
+
+    {/* 结构化数据，帮助搜索引擎理解这是个人技术博客 */}
+    <script
+      type="application/ld+json"
+      is:inline
+      set:html={JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': type === 'article' ? 'BlogPosting' : 'WebSite',
+        name: SITE.name,
+        description,
+        url: absoluteUrl(Astro.url.pathname),
+        inLanguage: SITE.lang,
+        author: { '@type': 'Person', name: SITE.author.name },
+      })}
+    />
+
+    {/* 打开页面时若 URL 带 ?q= 之外的锚点，保持默认滚动以外的行为一致 */}
+  </head>
+
+  <body>
+    <a class="skip-link" href="#main">跳到正文</a>
+    <Header />
+    <main id="main">
+      <div class="wrap">
+        <slot />
+      </div>
+    </main>
+    <Footer />
+
+    {/*
+      代码复制按钮。
+      用 is:inline 而不是交给 Astro 打包，原因：这段脚本需要尽早执行并
+      在 DOMContentLoaded 时扫描代码块；作为外链模块会多一次请求。
+      体积很小（约 1.5KB），内联反而更快。
+    */}
+    <script is:inline set:html={COPY_BUTTON_SCRIPT} />
+
+    {
+      /*
+        Umami 访问统计。
+        is:inline 是必需的：Astro 只处理 src/ 内部的脚本，
+        外部 <script src> 不加这个标记会被静默忽略（这是最容易踩的坑）。
+        拿到真实值之前 UMAMI.enabled 为 false，页面上不会插入任何东西。
+      */
+      UMAMI.enabled && UMAMI.scriptSrc && UMAMI.websiteId && (
+        <script is:inline async src={UMAMI.scriptSrc} data-website-id={UMAMI.websiteId} />
+      )
+    }
+  </body>
+</html>
+
+<style is:global>
+  /* ------------------------------------------------------------------
+     Pagefind Component UI 主题映射。
+     放在 <html> 层级是因为搜索弹层会被挂到 body 末尾，
+     在组件内部写 scoped 样式覆盖不到它。
+     官方明确说明 Component UI 不会自动跟随 prefers-color-scheme，
+     必须用 data-pf-theme 属性显式切换（由 theme-init 脚本设置）。
+     ------------------------------------------------------------------ */
+  :root {
+    --pf-text: var(--text);
+    --pf-text-secondary: var(--text-muted);
+    --pf-text-muted: var(--text-faint);
+    --pf-background: var(--bg-elevated);
+    --pf-border: var(--border);
+    --pf-border-focus: var(--accent);
+    --pf-skeleton: var(--bg-subtle);
+    --pf-skeleton-shine: var(--bg);
+    --pf-hover: var(--bg-subtle);
+    --pf-mark: var(--accent);
+    --pf-outline-focus: var(--accent);
+    --pf-font: var(--font-sans);
+    --pf-border-radius: var(--radius);
+    --pf-shadow-sm: var(--shadow);
+    --pf-shadow-md: var(--shadow);
+    --pf-shadow-lg: var(--shadow);
+    --pf-modal-max-width: 620px;
+  }
+
+  :root[data-pf-theme='dark'] {
+    --pf-text: #e6edf5;
+    --pf-text-secondary: #97a5b6;
+    --pf-text-muted: #6b7a8d;
+    --pf-background: #121a24;
+    --pf-border: #1f2c3d;
+    --pf-border-focus: #2dd4bf;
+    --pf-skeleton: #172232;
+    --pf-skeleton-shine: #0d151f;
+    --pf-hover: #172232;
+    --pf-mark: #2dd4bf;
+    --pf-outline-focus: #2dd4bf;
+    --pf-modal-backdrop: rgba(4, 8, 13, 0.62);
+  }
+</style>

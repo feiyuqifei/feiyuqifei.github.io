@@ -1,0 +1,92 @@
+---
+/**
+ * 文章详情页目录（TOC）。
+ *
+ * 只取 h2/h3：h4 及以下会让目录长得没法看，而且对导航帮助有限。
+ *
+ * 高亮当前阅读位置用的是 IntersectionObserver，而不是监听 scroll 事件——
+ * 后者在长文档上会明显掉帧。
+ */
+interface Heading {
+  depth: number;
+  slug: string;
+  text: string;
+}
+
+interface Props {
+  headings: Heading[];
+}
+
+const { headings } = Astro.props;
+const toc = headings.filter((h) => h.depth === 2 || h.depth === 3);
+---
+
+{
+  toc.length > 0 && (
+    <nav class="toc" aria-label="文章目录" data-toc>
+      <p class="toc-title">目录</p>
+      <ul>
+        {toc.map((h) => (
+          <li class={h.depth === 3 ? 'depth-3' : ''}>
+            <a href={`#${h.slug}`}>{h.text}</a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  )
+}
+
+<script>
+  /** 高亮当前视口内的标题对应的目录项 */
+  function initToc(): void {
+    const toc = document.querySelector<HTMLElement>('[data-toc]');
+    if (!toc) return;
+
+    const links = Array.from(toc.querySelectorAll<HTMLAnchorElement>('a[href^="#"]'));
+    if (links.length === 0) return;
+
+    const byId = new Map<string, HTMLAnchorElement>();
+    for (const link of links) {
+      const id = decodeURIComponent(link.hash.slice(1));
+      if (id) byId.set(id, link);
+    }
+
+    const targets = Array.from(byId.keys())
+      .map((id) => document.getElementById(id))
+      .filter((el): el is HTMLElement => el !== null);
+
+    if (targets.length === 0) return;
+
+    let active: HTMLAnchorElement | null = null;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        // 取当前所有可见标题中最靠上的那个
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+
+        const candidate = visible[0]?.target ?? null;
+        const next = candidate ? byId.get(candidate.id) ?? null : null;
+        if (next === active) return;
+
+        active?.classList.remove('active');
+        next?.classList.add('active');
+        active = next;
+      },
+      {
+        // 顶部留出吸顶导航的高度，底部收窄，避免"刚进视口就高亮"
+        rootMargin: '-72px 0px -70% 0px',
+        threshold: 0,
+      }
+    );
+
+    for (const el of targets) observer.observe(el);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initToc);
+  } else {
+    initToc();
+  }
+</script>

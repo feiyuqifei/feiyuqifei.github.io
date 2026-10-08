@@ -1,0 +1,95 @@
+---
+/**
+ * 首页。
+ *
+ * 结构：Hero（标语）→ 板块入口 → 最新文章列表。
+ * 刻意不放侧边栏、不放近期评论、不放热门标签堆砌——
+ * 首页的唯一任务是让访客在 5 秒内明白"这里写什么"，然后点进去。
+ */
+import Layout from '../layouts/Layout.astro';
+import PostCard from '../components/PostCard.astro';
+import Pagination from '../components/Pagination.astro';
+import { SITE, SECTIONS } from '../consts';
+import { withBase } from '../utils/url';
+import {
+  getPublishedPosts,
+  toCardData,
+  estimateReading,
+  totalPages,
+} from '../utils/render-posts';
+
+const allPosts = await getPublishedPosts();
+
+// 首页支持 ?page=N 分页。静态站没有服务端，所以用查询参数而不是路径分页，
+// 好处是首页始终只有一个 URL，对 SEO 更友好。
+const url = Astro.url;
+const rawPage = Number.parseInt(url.searchParams.get('page') ?? '1', 10);
+const current = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
+
+const perPage = SITE.postsPerPage;
+const pages = totalPages(allPosts.length, perPage);
+const safePage = Math.min(current, pages);
+const pagePosts = allPosts.slice((safePage - 1) * perPage, safePage * perPage);
+
+const cards = pagePosts.map((post) => ({
+  data: toCardData(post),
+  reading: estimateReading(post),
+}));
+---
+
+<Layout title={SITE.name} description={SITE.description}>
+  <section class="hero">
+    <h1>{SITE.tagline}</h1>
+    <p class="hero-tagline">
+      {SITE.name}的技术自留地。把水下那些读源码、抓波形、翻手册的过程记录下来，
+      偶尔捞点能直接用的东西上来。
+    </p>
+    <p class="hero-desc">{SITE.description}</p>
+  </section>
+
+  <section class="section-grid" aria-label="内容板块">
+    {
+      Object.values(SECTIONS).map((section) => (
+        <a class="section-card" href={withBase(`/${section.key}/`)}>
+          <span class="section-icon">{section.icon}</span>
+          <div class="section-name">{section.name}</div>
+          <p class="section-desc">{section.desc}</p>
+        </a>
+      ))
+    }
+  </section>
+
+  <section aria-label="最新文章">
+    <div class="list-head">
+      <h2>最新文章</h2>
+      <span class="count">{allPosts.length} 篇</span>
+    </div>
+
+    {
+      cards.length > 0 ? (
+        <ul class="post-list">
+          {cards.map((card) => (
+            <PostCard
+              id={card.data.id}
+              title={card.data.title}
+              description={card.data.description}
+              pubDate={card.data.pubDate}
+              tags={card.data.tags}
+              readingLabel={card.reading}
+            />
+          ))}
+        </ul>
+      ) : (
+        <p class="empty">
+          还没有文章。在 <code>src/content/posts/</code> 下新建一个 .md 文件即可开始写。
+        </p>
+      )
+    }
+
+    <Pagination current={safePage} total={pages} base="" />
+  </section>
+
+  <p style="margin-top:2.5rem">
+    <a href={withBase('/archive/')}>查看全部文章归档 →</a>
+  </p>
+</Layout>

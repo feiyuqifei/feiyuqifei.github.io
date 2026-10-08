@@ -1,0 +1,74 @@
+---
+/**
+ * 单个标签下的文章列表。
+ *
+ * 注意路径参数是中文标签名。这里刻意不做 decodeURIComponent：
+ * Astro 从 URL 取出的 params 已经解码过一次，再解一次会把
+ * 含 % 的标签名弄坏。
+ */
+import Layout from '../../layouts/Layout.astro';
+import PostCard from '../../components/PostCard.astro';
+import { withBase } from '../../utils/url';
+import { getPublishedPosts, toCardData, estimateReading, type PostEntry } from '../../utils/render-posts';
+import { getAllTags } from '../../utils/posts';
+export async function getStaticPaths() {
+  const posts = await getPublishedPosts();
+  const tags = getAllTags(posts);
+
+  return tags.map((tag) => ({
+    params: { tag },
+    props: { tag },
+  }));
+}
+
+interface Props {
+  tag: string;
+}
+
+const { tag } = Astro.props;
+const posts = (await getPublishedPosts()).filter((post: PostEntry) =>
+  (post.data.tags ?? []).includes(tag)
+);
+
+const cards = posts.map((post) => ({
+  data: toCardData(post),
+  reading: estimateReading(post),
+}));
+---
+
+<Layout title={`标签：${tag}`} description={`标签「${tag}」下的全部文章`}>
+  <header class="page-head">
+    <nav class="breadcrumb" aria-label="面包屑">
+      <a href={withBase('/')}>首页</a>
+      <span> / </span>
+      <a href={withBase('/tags/')}>标签</a>
+      <span> / </span>
+      <span>{tag}</span>
+    </nav>
+    <h1>#{tag}</h1>
+    <p class="page-desc">共 {posts.length} 篇相关文章。</p>
+  </header>
+
+  {
+    cards.length > 0 ? (
+      <ul class="post-list">
+        {cards.map((card) => (
+          <PostCard
+            id={card.data.id}
+            title={card.data.title}
+            description={card.data.description}
+            pubDate={card.data.pubDate}
+            tags={card.data.tags}
+            readingLabel={card.reading}
+          />
+        ))}
+      </ul>
+    ) : (
+      <p class="empty">这个标签下暂时没有文章。</p>
+    )
+  }
+
+  <p style="margin-top:2.5rem">
+    <a href={withBase('/tags/')}>← 返回全部标签</a>
+  </p>
+</Layout>

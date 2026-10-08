@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 132 132" width="132" height="132" role="img" aria-label="飞鱼头像">
+  <!-- 深色背景 + 飞鱼图形，作为默认头像占位。
+       换成自己的照片时，把 public/avatar.png 放进去，
+       并把 about.astro 里的 src 改成 /avatar.png 即可。 -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f2027" />
+      <stop offset="100%" stop-color="#123b45" />
+    </linearGradient>
+    <linearGradient id="fin" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#5eead4" />
+      <stop offset="100%" stop-color="#2dd4bf" />
+    </linearGradient>
+  </defs>
+
+  <rect width="132" height="132" rx="66" fill="url(#bg)" />
+
+  <!-- 跃起的身体 -->
+  <path
+    d="M22 76c16-24 36-35 60-35 9 0 16 2 22 6-4.5 4.8-7.4 9.6-8.8 14.4 5.2 1.1 10 3.4 14.4 7-11 6.3-24.3 9.6-39.8 9.6"
+    fill="none" stroke="url(#fin)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" />
+  <!-- 背鳍 -->
+  <path d="M56 42c1.8-13.5 7.6-23 17.2-28.8 2.2 9.6 1.8 18.4-1.1 26.2"
+    fill="none" stroke="url(#fin)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" />
+  <!-- 尾鳍 -->
+  <path d="M32 60c-7.4-5.5-12.2-12.2-14.7-19.9 9.6 1.5 17.4 5.2 23 10.9"
+    fill="none" stroke="url(#fin)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" />
+  <!-- 眼 -->
+  <circle cx="88" cy="62" r="3.4" fill="#0b1017" />
+  <!-- 水面波纹 -->
+  <path d="M14 100c9.6-6.6 19.2-6.6 28.8 0s19.2 6.6 28.8 0 19.2-6.6 28.8 0 19.2 6.6 28.8 0"
+    fill="none" stroke="#2dd4bf" stroke-opacity="0.5" stroke-width="5" stroke-linecap="round" />
+</svg>

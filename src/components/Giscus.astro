@@ -1,0 +1,98 @@
+---
+/**
+ * Giscus 评论组件（基于 GitHub Discussions，无后端、无数据库）。
+ *
+ * ⚠️ 为什么默认关闭：
+ *   Giscus 需要三个前提条件，缺任何一个评论区都会显示空白且不报错，
+ *   非常难排查。所以这里用 enabled 开关显式控制，宁可先不显示，
+ *   也不要上线一个永远转圈的评论区。
+ *
+ * 开启前必须完成：
+ *   1. 仓库 feiyuqifei.github.io 是 public
+ *   2. 仓库 Settings → General → Features → 勾选 Discussions
+ *   3. 到 https://github.com/apps/giscus 安装 Giscus App 并授权该仓库
+ *   4. 打开 https://giscus.app ，填入仓库名，页面会生成 repo-id 和 category-id
+ *   5. 把生成的值填进 src/consts.ts 的 GISCUS，并把 enabled 改成 true
+ */
+import { GISCUS } from '../consts';
+
+/*
+ * 评论映射默认用当前页面路径（data-mapping="pathname"），
+ * 所以不需要手动传 pathname，这里也不再声明未使用的 prop。
+ */
+const ready = GISCUS.enabled && GISCUS.repoId !== '' && GISCUS.categoryId !== '';
+---
+
+<section class="comments" aria-label="评论区">
+  <h2 class="comments-title">评论</h2>
+
+  {
+    ready ? (
+      <>
+        <script
+          src="https://giscus.app/client.js"
+          is:inline
+          data-repo={GISCUS.repo}
+          data-repo-id={GISCUS.repoId}
+          data-category={GISCUS.category}
+          data-category-id={GISCUS.categoryId}
+          data-mapping={GISCUS.mapping}
+          data-strict="0"
+          data-reactions-enabled="1"
+          data-emit-metadata="0"
+          data-input-position="top"
+          data-theme="preferred_color_scheme"
+          data-lang={GISCUS.lang}
+          data-loading="lazy"
+          crossorigin="anonymous"
+          async
+        />
+        {/*
+          Giscus 的 data-theme 支持 preferred_color_scheme，
+          但本站主题是手动切换且存在 localStorage 里，
+          与系统偏好可能不一致。所以监听主题变化后主动同步
+          （见下方 <script>），否则会出现"网站是深色、评论是浅色"的割裂。
+        */}
+        <script>
+          type GiscusTheme = 'light' | 'dark';
+
+          function currentTheme(): GiscusTheme {
+            return document.documentElement.getAttribute('data-theme') === 'light'
+              ? 'light'
+              : 'dark';
+          }
+
+          /** 向 Giscus 的 iframe 发送主题切换指令（官方支持的 postMessage 协议） */
+          function syncGiscusTheme(): void {
+            const frame = document.querySelector<HTMLIFrameElement>('iframe.giscus-frame');
+            if (!frame?.contentWindow) return;
+            frame.contentWindow.postMessage(
+              { giscus: { setConfig: { theme: currentTheme() } } },
+              'https://giscus.app'
+            );
+          }
+
+          // Giscus 加载完成后先同步一次
+          window.addEventListener('message', (event) => {
+            if (event.origin !== 'https://giscus.app') return;
+            const data = event.data as { giscus?: { discussion?: unknown } };
+            if (data.giscus) syncGiscusTheme();
+          });
+
+          // 用户点主题切换按钮时同步
+          document.querySelectorAll('[data-theme-toggle]').forEach((btn) => {
+            btn.addEventListener('click', () => {
+              // 等按钮自身的 handler 改完属性再读
+              window.setTimeout(syncGiscusTheme, 0);
+            });
+          });
+        </script>
+      </>
+    ) : (
+      <p class="comments-placeholder">
+        评论区尚未启用。需要在 <code>src/consts.ts</code> 中填写 Giscus 配置
+        （仓库需开启 Discussions 并安装 Giscus App）。
+      </p>
+    )
+  }
+</section>

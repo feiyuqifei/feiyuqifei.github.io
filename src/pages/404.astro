@@ -1,0 +1,45 @@
+---
+/**
+ * 404 页面。
+ *
+ * Astro 会把这个文件输出为 dist/404.html，
+ * GitHub Pages 对该文件有内置支持：访问不存在的路径时自动返回它。
+ * 所以文件名必须是 404.astro，不能改。
+ */
+import Layout from '../layouts/Layout.astro';
+import { SECTIONS } from '../consts';
+import { withBase } from '../utils/url';
+---
+
+<Layout title="页面不存在" description="这个地址没有对应的内容" noindex>
+  <header class="page-head">
+    <h1>404 · 潜得太深，迷路了</h1>
+    <p class="page-desc">
+      这个地址没有对应的内容。可能是链接写错了，或者文章被移走了。
+    </p>
+  </header>
+
+  <section class="section-grid" aria-label="可以试试这些地方">
+    <a class="section-card" href={withBase('/')}>
+      <span class="section-icon">←</span>
+      <div class="section-name">返回首页</div>
+      <p class="section-desc">从最新文章开始看</p>
+    </a>
+
+    {
+      Object.values(SECTIONS).map((section) => (
+        <a class="section-card" href={withBase(`/${section.key}/`)}>
+          <span class="section-icon">{section.icon}</span>
+          <div class="section-name">{section.name}</div>
+          <p class="section-desc">{section.desc}</p>
+        </a>
+      ))
+    }
+
+    <a class="section-card" href={withBase('/archive/')}>
+      <span class="section-icon">≡</span>
+      <div class="section-name">全部归档</div>
+      <p class="section-desc">按时间浏览所有文章</p>
+    </a>
+  </section>
+</Layout>

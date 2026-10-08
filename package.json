@@ -17,6 +17,7 @@
     "deploy:zip": "python scripts/make-deploy-zip.py",
     "check:workflow": "python scripts/check-workflow.py",
     "assets": "python scripts/make-assets.py",
+    "qr": "node scripts/make-qr.mjs",
     "astro": "astro"
   },
   "dependencies": {
@@ -35,6 +36,7 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
+    "qrcode": "^1.5.4",
     "typescript": "^6.0.3"
   }
 }

@@ -95,6 +95,31 @@ function check(name, pass, detail = '') {
 }
 
 /**
+ * 等待页面真正就绪：URL 已是 http + readyState 完成 + 目标元素出现。
+ * 远程站点加载慢，死等固定时长会得到假故障。
+ */
+async function waitForPageReady(cdp, selector, timeoutMs = 30000) {
+  const started = Date.now();
+  let last = null;
+  while (Date.now() - started < timeoutMs) {
+    try {
+      last = await cdp.evaluate(`(() => ({
+        readyState: document.readyState,
+        href: location.href,
+        found: !!document.querySelector(${JSON.stringify(selector)}),
+      }))()`);
+    } catch {
+      // 导航期间执行上下文可能被销毁，忽略后重试
+    }
+    if (last && last.href.startsWith('http') && last.readyState === 'complete' && last.found) {
+      return { ...last, elapsedMs: Date.now() - started };
+    }
+    await sleep(250);
+  }
+  return { ...(last ?? { readyState: '未知', href: '', found: false }), elapsedMs: Date.now() - started };
+}
+
+/**
  * 把元素滚入视野后返回其视口中心坐标。
  * 合成鼠标事件按视口坐标派发，元素在视口外就点不中，
  * 所以每次点击前都必须重新取坐标。
@@ -168,7 +193,14 @@ async function main() {
       origin: BASE,
       permissions: ['clipboardReadWrite', 'clipboardSanitizedWrite'],
     });
-    await sleep(2500);
+
+    /*
+     * 必须轮询等待页面真正就绪，不能死等固定时间。
+     * CDP 新建标签页初始是 about:blank，随后才异步导航；
+     * 远程站点从发起导航到 DOM 可用可能要数秒。固定 sleep 会在文档还是空的时候
+     * 就去查询，导致"按钮数量为 0"这类假故障。
+     */
+    const ready = await waitForPageReady(cdp, '.copy-btn');    console.log(`   页面就绪: ${ready.href}  (readyState=${ready.readyState}, 等待 ${ready.elapsedMs}ms)\n`);
 
     console.log('【1】按钮注入情况');
     const stats = await cdp.evaluate(`(() => {

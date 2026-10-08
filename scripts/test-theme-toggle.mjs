@@ -108,9 +108,36 @@ async function newPage(port, url) {
   return { tab, cdp: new Cdp(ws), ws };
 }
 
+/**
+ * 等待页面真正就绪。
+ *
+ * CDP 新建的标签页初始是 about:blank，之后才异步导航到目标地址。
+ * 必须轮询直到：URL 已切换到目标 + readyState 为 complete + 目标元素出现。
+ * 死等固定时长在本地服务上碰巧能过，但远程站点会失败。
+ */
+async function waitForPageReady(cdp, selector = '[data-theme-toggle]', timeoutMs = 30000) {
+  const started = Date.now();
+  let last = null;
+  while (Date.now() - started < timeoutMs) {
+    try {
+      last = await cdp.evaluate(`(() => ({
+        readyState: document.readyState,
+        href: location.href,
+        hasButton: !!document.querySelector(${JSON.stringify(selector)}),
+      }))()`);
+    } catch {
+      // 导航过程中执行上下文可能被销毁，忽略后重试
+    }
+    if (last && last.href.startsWith('http') && last.readyState === 'complete' && last.hasButton) {
+      return { ...last, elapsedMs: Date.now() - started };
+    }
+    await sleep(250);
+  }
+  return { ...(last ?? { readyState: '未知', href: '', hasButton: false }), elapsedMs: Date.now() - started };
+}
+
 /** 取得元素中心点坐标，用于派发真实鼠标事件 */
-async function centerOf(cdp, selector) {
-  return cdp.evaluate(`(() => {
+async function centerOf(cdp, selector) {  return cdp.evaluate(`(() => {
     const el = document.querySelector(${JSON.stringify(selector)});
     if (!el) return null;
     const r = el.getBoundingClientRect();
@@ -170,8 +197,19 @@ async function main() {
 
     await cdp.send('Runtime.enable');
     await cdp.send('Page.enable');
-    // 等页面加载完成
-    await sleep(2500);
+
+    /*
+     * 关键：必须轮询等待页面真正就绪，不能死等固定时间。
+     * 通过 CDP 新建的标签页初始是 about:blank，随后才异步导航到目标地址；
+     * 远程站点（如 GitHub Pages）从发起导航到 DOM 可用可能需要数秒。
+     * 固定 sleep 会在文档还是空的时就查询 DOM，导致
+     * "找不到按钮"这类假故障 —— 本地服务快所以掩盖了这个问题。
+     */
+    const ready = await waitForPageReady(cdp);
+    console.log(`   页面就绪: ${ready.href}  (readyState=${ready.readyState}, 等待 ${ready.elapsedMs}ms)\n`);
+    if (!ready.hasButton) {
+      console.log('   警告: 页面已就绪但未找到主题按钮，后续断言会失败\n');
+    }
 
     console.log('【1】初始状态');
     const initial = await cdp.evaluate(`(() => {

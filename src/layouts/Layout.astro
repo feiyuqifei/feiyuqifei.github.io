@@ -8,6 +8,7 @@ import { absoluteUrl } from '../utils/url';
 import { THEME_INIT_SCRIPT } from '../scripts/theme-init';
 import { COPY_BUTTON_SCRIPT } from '../scripts/copy-code';
 import { SCROLL_REVEAL_SCRIPT } from '../scripts/scroll-reveal';
+import { CURSOR_BUBBLES_SCRIPT } from '../scripts/cursor-bubbles';
 import SEO from '../components/SEO.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
@@ -129,6 +130,13 @@ const {
       脚本本身是渐进增强的，挂掉也不影响内容可读。
     */}
     <script is:inline set:html={SCROLL_REVEAL_SCRIPT} />
+
+    {/*
+      鼠标跟随气泡。
+      is:inline 保证它在首屏就绪；脚本内部会自行判断
+      prefers-reduced-motion 与是否触屏设备，不满足条件直接不启动。
+    */}
+    <script is:inline set:html={CURSOR_BUBBLES_SCRIPT} />
 
     {
       /*

@@ -9,7 +9,7 @@
  */
 
 import { readFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -34,9 +34,6 @@ while ((m = re.exec(block)) !== null) {
   let u;
   while ((u = uRe.exec(inner)) !== null) urls.push(u[1]);
 }
-
-/* 同时抓 title 便于报告 */
-const titles = [...block.matchAll(/title:\s*'([^']*Writeup[^']*)'/g)].map((x) => x[1]);
 
 console.log(`从 consts.ts 提取到 ${urls.length} 条 writeup 链接\n`);
 

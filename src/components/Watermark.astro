@@ -1,0 +1,83 @@
+---
+/**
+ * 全页水印。
+ *
+ * 平铺的斜向文字水印，覆盖整个视口，用于标识内容归属。
+ * 参考 FixIt 主题的 cell-watermark 效果。
+ *
+ * 三项设计约束（缺一个都会出问题）：
+ *
+ * 1. **pointer-events: none 是必须的**。
+ *    这一层覆盖整个视口，如果参与命中测试，全站所有链接、按钮、
+ *    文本选择会全部失效 —— 这是最容易踩的坑。
+ *
+ * 2. **用 CSS background 平铺，而不是生成几十个 DOM 节点**。
+ *    水印格子用内联 SVG 画好文字，再用 background-repeat 平铺。
+ *    背景是合成层，不参与布局、不影响滚动性能；
+ *    而每个格子一个 div 的做法在长页面上会有几百个节点。
+ *
+ * 3. **透明度必须很低**（默认 0.028）。
+ *    水印的目的是标识归属，不是让人看不清正文。
+ *    技术博客正文密度高，水印一旦明显就严重影响可读性。
+ *
+ * 深浅色主题各一套颜色：**不能用 currentColor**。
+ * 原因：SVG 作为 background-image 使用时处在独立文档里，
+ * 拿不到父元素的 color，currentColor 会解析成默认黑。
+ * 深色主题下黑字压在近黑背景上等于完全看不见 —— 这个坑实际踩过。
+ */
+import { SITE } from '../consts';
+
+/*
+ * 水印文字与开关集中在这里。
+ * 改文字不需要动样式；关掉只需把 enabled 设为 false。
+ */
+const WATERMARK = {
+  enabled: true,
+  text: '@feiyuqifei',
+  /** 每个格子的尺寸（px）。字越长格子要越宽，否则文字会被裁掉 */
+  cellWidth: 320,
+  cellHeight: 180,
+  /** 旋转角度（度），负值向左倾 */
+  rotate: -22,
+  /**
+   * 透明度。建议 0.02 ~ 0.06。
+   * 浅色主题背景为中灰（#f8fafc），深色主题为近黑（#0b1017），
+   * 所以深色主题用稍高一点的透明度才看得见。
+   */
+  opacityLight: 0.045,
+  opacityDark: 0.05,
+  /** 浅色主题下的水印颜色（中灰，压在浅底上可辨） */
+  colorLight: '#64748b',
+  /** 深色主题下的水印颜色（浅灰） */
+  colorDark: '#cbd5e1',
+} as const;
+
+const {
+  enabled, text, cellWidth, cellHeight, rotate,
+  opacityLight, opacityDark, colorLight, colorDark,
+} = WATERMARK;
+
+/**
+ * 把文字画成一张 SVG 图，供 CSS background 平铺。
+ * viewBox 用格子尺寸，文字居中，旋转围绕格子中心。
+ */
+function makeSvg(color: string): string {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${cellWidth}" height="${cellHeight}" viewBox="0 0 ${cellWidth} ${cellHeight}"><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="17" font-weight="600" letter-spacing="1" fill="${color}" transform="rotate(${rotate} ${cellWidth / 2} ${cellHeight / 2})">${text}</text></svg>`;
+  /* 井号必须编码成 %23，否则在 data URI 里会被当成片段标识符截断 */
+  return encodeURIComponent(svg).replace(/'/g, '%27').replace(/"/g, '%22');
+}
+
+const svgLight = makeSvg(colorLight);
+const svgDark = makeSvg(colorDark);
+---
+
+{
+  enabled && (
+    <div
+      class="site-watermark"
+      aria-hidden="true"
+      data-site={SITE.name}
+      style={`--wm-image-light:url("data:image/svg+xml,${svgLight}");--wm-image-dark:url("data:image/svg+xml,${svgDark}");--wm-cell-w:${cellWidth}px;--wm-cell-h:${cellHeight}px;--wm-opacity-light:${opacityLight};--wm-opacity-dark:${opacityDark};`}
+    />
+  )
+}

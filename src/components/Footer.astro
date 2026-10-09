@@ -1,9 +1,10 @@
 ---
 /**
- * 全站页脚：版权、站点标语、社交链接。
+ * 全站页脚：版权、站点标语、社交链接、访客统计。
  */
 import { SITE, SOCIALS } from '../consts';
 import { withBase } from '../utils/url';
+import SiteStats from './SiteStats.astro';
 
 const year = new Date().getFullYear();
 ---
@@ -11,6 +12,9 @@ const year = new Date().getFullYear();
 <footer class="site-footer">
   <div class="wrap">
     <span>© {year} {SITE.name} · {SITE.tagline}</span>
+
+    {/* 访客统计：数字到位后才显示，脚本被拦时不留下空壳 */}
+    <SiteStats />
 
     <div class="footer-links">
       {

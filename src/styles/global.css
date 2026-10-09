@@ -749,6 +749,33 @@ main {
     margin-inline-start: auto;
   }
 
+  /* ── 访客统计 ──
+     默认 hidden（属性），只有真的拿到数字才由脚本显示。
+     与版权行同一行，图标 + 数字，字号比正文小一号。 */
+  .footer-stats {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-faint);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .footer-stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.28rem;
+
+    svg {
+      width: 14px;
+      height: 14px;
+      opacity: 0.8;
+    }
+  }
+
+  .footer-divider {
+    opacity: 0.45;
+  }
+
   a {
     color: var(--text-muted);
 
@@ -760,6 +787,49 @@ main {
   svg {
     width: 17px;
     height: 17px;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   5.5 全页水印
+   --------------------------------------------------------------------------
+   平铺的斜向文字，标识内容归属。
+
+   三条约束：
+   1. pointer-events: none —— 这一层覆盖整个视口，
+      参与命中测试就会让全站链接、按钮、文本选择全部失效。
+   2. z-index: 0 —— 低于正文内容（正文在更高层），
+      水印只覆盖页面背景，不压在文字上，避免影响阅读。
+   3. 透明度极低（由组件传入的 --wm-opacity 控制）。
+      技术博客正文密度高，水印一明显就可读性骤降。
+
+   平铺靠 background-repeat，不是几十个 div：
+   背景在合成层绘制，不参与布局、不影响滚动性能。
+   -------------------------------------------------------------------------- */
+.site-watermark {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: var(--wm-image-light);
+  background-size: var(--wm-cell-w) var(--wm-cell-h);
+  background-repeat: repeat;
+  opacity: var(--wm-opacity-light);
+}
+
+/* 深色主题换用浅色水印图，否则黑字压在近黑背景上完全看不见 */
+:root[data-theme='dark'] .site-watermark {
+  background-image: var(--wm-image-dark);
+  opacity: var(--wm-opacity-dark);
+}
+
+/*
+ * 打印时不打水印 —— 水印是屏幕上的归属标识，
+ * 打印到纸上只会让内容更难读。
+ */
+@media print {
+  .site-watermark {
+    display: none;
   }
 }
 

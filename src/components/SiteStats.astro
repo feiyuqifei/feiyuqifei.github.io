@@ -1,0 +1,72 @@
+---
+/**
+ * 站点访客统计（Vercount）。
+ *
+ * Vercount 是「不蒜子」的替代服务 —— 传统不蒜子
+ * （busuanzi.ibruce.info）实测已无法访问，所以用它。
+ *
+ * 工作方式：脚本会主动查找一批固定 ID 的元素并填入数字：
+ *   busuanzi_container_site_uv / busuanzi_value_site_uv  —— 总访客数
+ *   busuanzi_container_site_pv / busuanzi_value_site_pv  —— 总访问量
+ *   busuanzi_container_page_pv / busuanzi_value_page_pv  —— 本页阅读量
+ * 所以下面的 ID 名不能改，改了数字就填不进来。
+ *
+ * ⚠️ 隐私权衡（必须知道）：
+ *   1. 它会把每次访问的完整 URL 上报到 events.vercount.one（第三方）
+ *   2. 它会写一个 Cookie（vercount_uv_<域名>）用于区分独立访客
+ * 本站原本只有 Umami（无 Cookie、匿名化），加这个之后不再是零 Cookie。
+ * 不需要时把 SITE_STATS.enabled 设为 false 即可完全移除。
+ *
+ * 为什么初始状态是隐藏的：
+ *   数字要等脚本请求回来才有（实测首次约 7 秒）。若一开始就显示占位符，
+ *   脚本被广告拦截器拦掉时会永远留一个空白图标。所以默认隐藏，
+ *   只在真的拿到数字后才显示 —— 宁可没有，也不要显示一个空壳。
+ */
+import { SITE_STATS_SCRIPT } from '../scripts/site-stats';
+
+const STATS = {
+  enabled: true,
+  scriptSrc: 'https://vercount.one/js',
+} as const;
+---
+
+{
+  STATS.enabled && (
+    <>
+      <div class="footer-line footer-stats" data-site-stats hidden>
+        <span
+          id="busuanzi_container_site_uv"
+          class="footer-stat"
+          title="总访客数"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+            <circle cx="12" cy="8" r="3.6" />
+            <path d="M4.5 20c0-3.6 3.4-6 7.5-6s7.5 2.4 7.5 6" />
+          </svg>
+          <span id="busuanzi_value_site_uv">—</span>
+        </span>
+        <span class="footer-divider" aria-hidden="true">|</span>
+        <span
+          id="busuanzi_container_site_pv"
+          class="footer-stat"
+          title="总访问量"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+            <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+          <span id="busuanzi_value_site_pv">—</span>
+        </span>
+      </div>
+
+      {/*
+        加载脚本，并在数字到位后把整行显示出来。
+        用 MutationObserver 而不是定时器：脚本是异步的，
+        轮询要么浪费要么错过；观察 DOM 变化最准。
+        注意必须用 set:html —— 详见 src/scripts/site-stats.ts 的说明。
+      */}
+      <script is:inline src={STATS.scriptSrc} async />
+      <script is:inline set:html={SITE_STATS_SCRIPT} />
+    </>
+  )
+}

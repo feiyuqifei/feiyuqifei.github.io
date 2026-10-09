@@ -28,15 +28,14 @@ export const SITE = {
   /**
    * 站点正式地址。**这是全站唯一的域名来源**。
    *
-   * 当前是占位值，买好域名后替换成真实域名即可，例如：
-   *   url: 'https://feiyu.me',
-   * 必须以 https:// 开头，结尾不要带斜杠。
-   *
    * 这个值会被用于：canonical 标签、og:url、结构化数据、
    * RSS 里的文章链接、sitemap。改错或漏改会导致搜索引擎
    * 和订阅者看到的是旧地址。
+   *
+   * 想换成自有域名时，改成例如 'https://feiyu.me' 即可
+   * （https:// 开头，结尾不带斜杠）。见下方"换域名的步骤"。
    */
-  url: 'https://feiyu.example.com',
+  url: 'https://feiyuqifei.github.io',
   /** 作者信息 */
   author: {
     name: '飞鱼',

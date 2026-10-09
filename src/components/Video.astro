@@ -1,0 +1,141 @@
+---
+/**
+ * 视频播放组件。
+ *
+ * 设计目标：同一个组件同时支持两种托管方式，避免以后换方案要改文章。
+ *
+ *   1. 直链模式（src）
+ *      视频文件放在对象存储 / CDN 上，直接给出 .mp4 等地址。
+ *      适合：Cloudflare R2（出流量免费）、阿里云 OSS、腾讯云 COS、自建服务器。
+ *
+ *   2. 嵌入模式（embed）
+ *      用 B 站 / YouTube 的 iframe 播放器。
+ *      适合：还没决定托管方案、或者不想付流量费的情况。
+ *
+ * 无论哪种模式都支持封面图（poster）与懒加载，避免一个视频页
+ * 因为预加载视频而白耗流量。
+ */
+
+interface Props {
+  /** 直链模式的视频地址（mp4 / webm） */
+  src?: string;
+  /** 嵌入模式的 iframe 地址（B 站、YouTube 等） */
+  embed?: string;
+  /** 封面图地址。强烈建议提供 —— 没有封面时首帧可能是黑屏 */
+  poster?: string;
+  /** 视频标题，用于无障碍朗读与展示 */
+  title: string;
+  /** 时长，例如 "12:34"。留空则不显示 */
+  duration?: string;
+  /** 视频说明，显示在播放器下方 */
+  caption?: string;
+  /** 画面比例。录屏通常是 16:9 */
+  ratio?: '16/9' | '4/3' | '1/1';
+  /** 最大宽度，避免短视频被拉伸得过大 */
+  maxWidth?: string;
+}
+
+const {
+  src,
+  embed,
+  poster,
+  title,
+  duration,
+  caption,
+  ratio = '16/9',
+  maxWidth = '100%',
+}: Props = Astro.props;
+
+// 两种模式都没给就说明用法错了，直接报出来比静默渲染空盒子好
+if (!src && !embed) {
+  throw new Error(`Video 组件需要 src 或 embed 之一（标题：${title}）`);
+}
+const mode = embed ? 'embed' : 'video';
+---
+
+<figure class="video-figure" style={`max-width:${maxWidth}`}>
+  <div class="video-frame" style={`aspect-ratio:${ratio}`}>
+    {
+      mode === 'video' ? (
+        <video
+          controls
+          preload="none"
+          playsinline
+          poster={poster}
+          aria-label={title}
+        >
+          <source src={src} />
+          你的浏览器不支持内嵌视频，可以<a href={src}>直接下载观看</a>。
+        </video>
+      ) : (
+        <iframe
+          src={embed}
+          title={title}
+          loading="lazy"
+          allowfullscreen
+          allow="accelerometer; clipboard-write; encrypted-media; picture-in-picture; fullscreen"
+          referrerpolicy="no-referrer"
+        />
+      )
+    }
+  </div>
+
+  <figcaption>
+    <span class="video-title">
+      {title}
+      {duration && <span class="video-duration">{duration}</span>}
+    </span>
+    {caption && <span class="video-caption">{caption}</span>}
+  </figcaption>
+</figure>
+
+<style>
+  .video-figure {
+    margin-block: 1.8em;
+  }
+
+  .video-frame {
+    position: relative;
+    width: 100%;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .video-frame video,
+  .video-frame iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    display: block;
+  }
+
+  figcaption {
+    margin-top: 0.6em;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    font-size: 0.86rem;
+    line-height: 1.6;
+  }
+
+  .video-title {
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+
+  .video-duration {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--text-faint);
+    margin-inline-start: 0.5rem;
+    font-weight: 400;
+  }
+
+  .video-caption {
+    color: var(--text-faint);
+  }
+</style>

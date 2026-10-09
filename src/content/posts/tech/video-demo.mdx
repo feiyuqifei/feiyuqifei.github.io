@@ -1,0 +1,111 @@
+---
+title: '视频示范：播放器位置长什么样'
+description: '这是一篇演示文章，用来看视频组件在页面里的实际效果。演示了嵌入模式和直链模式两种写法，正式录视频前可以先看这个确认版式。'
+pubDate: 2026-04-08
+tags: ['视频', '演示']
+category: '视频'
+draft: true
+---
+
+import Video from '../../../components/Video.astro';
+
+{/*
+  .mdx 文章里用自定义组件，必须在文件顶部 import。
+  两个我踩过的坑：
+
+  1. 漏了 import 时，报错是
+       Expected component `Video` to be defined
+     而不是"找不到 import"，容易看错方向。
+
+  2. 路径深度：这个文件在 src/content/posts/tech/ 下，是三层深，
+     所以要 ../../../components/，写成 ../../ 会报 UNRESOLVED_IMPORT。
+*/}
+
+这一篇是**版式预留**，草稿状态（`draft: true`），不会出现在列表和订阅里。
+等真开始录视频，把下面的占位内容换成真实地址即可。
+
+## 嵌入模式（B 站 / 视频平台）
+
+适合还没决定托管方案、或者不想付流量费的情况。
+写 `.mdx` 文章时这样用：
+
+```mdx
+<Video
+  embed="https://player.bilibili.com/player.html?bvid=BV1xxxxxxxxx&autoplay=0"
+  title="用 Wireshark 定位一次丢包问题"
+  duration="12:34"
+  caption="录制环境：Ubuntu 24.04，Wireshark 4.2"
+/>
+```
+
+实际渲染出来是这样（用真实 B 站视频做占位）：
+
+<Video
+  embed="https://player.bilibili.com/player.html?bvid=BV1GJ411x7h7&autoplay=0&high_quality=1&danmaku=0"
+  title="嵌入模式示例（B 站播放器）"
+  duration="12:34"
+  caption="这是 B 站播放器的实际外观，与本站样式差别明显，这是嵌入模式的主要缺点"
+/>
+
+播放器是平台提供的，样式跟本站不统一，这点要有心理准备。
+
+## 直链模式（对象存储 / 自建）
+
+视频放在 Cloudflare R2、OSS 或自己的服务器上，用原生 `<video>` 播放。
+
+```mdx
+<Video
+  src="https://video.example.com/wireshark-demo.mp4"
+  poster="/videos/wireshark-demo-cover.jpg"
+  title="用 Wireshark 定位一次丢包问题"
+  duration="12:34"
+  caption="1080p，建议全屏观看"
+/>
+```
+
+渲染出来是这样：
+
+<Video
+  src="https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/720/Big_Buck_Bunny_720_10s_1MB.mp4"
+  title="直链模式示例（原生播放器）"
+  duration="00:10"
+  caption="示例视频仅 1MB，来自公开测试源。正式使用时请换到自己的存储"
+/>
+
+这个播放器和站点风格一致，而且**不会跳转到第三方网站**。
+
+## 两种模式的取舍
+
+| | 嵌入模式 | 直链模式 |
+|---|---|---|
+| 费用 | 免费 | 取决于存储（R2 出流量免费） |
+| 国内速度 | 好 | 视方案而定 |
+| 样式统一 | 差（平台播放器） | 好 |
+| 自主可控 | 差（平台删了就没） | 好 |
+| 需要自己压缩 | 不需要（平台转码） | 需要 |
+
+详细的方案对比写在仓库的 `docs/视频托管方案.md` 里。
+
+## 宽高比的处理
+
+组件用 `aspect-ratio` 占位，所以**加载前空间就留好了**，
+不会出现"视频加载完成后页面突然跳一下"的情况。
+这对阅读体验影响很大，尤其是文章中间插入多个视频时。
+
+竖屏视频（手机录的）可以改比例：
+
+```mdx
+<Video src="..." title="竖屏录制的手机操作" ratio="1/1" maxWidth="480px" />
+```
+
+## 正式录制前的几条建议
+
+放在这里提醒自己：
+
+1. **单个视频控制在 10 分钟以内**，长了拆集
+2. **终端字号调到 16pt 以上**，压缩后还能看清
+3. **用独立麦克风**，教程视频毁在音频上的比毁在画质上的多
+4. **1080p / 30fps 足够**，终端录屏不要用 60fps
+5. **录之前先测 10 秒音频**，回放确认没有电流声
+
+第 3 条和第 5 条是最容易省掉、也最容易后悔的。

@@ -1,6 +1,7 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 import sitemap from '@astrojs/sitemap';
+import mdx from '@astrojs/mdx';
 import pagefind from 'astro-pagefind';
 import { unified } from '@astrojs/markdown-remark';
 import remarkMath from 'remark-math';
@@ -36,6 +37,19 @@ export default defineConfig({
 
   /** 站点地图：排除标签聚合页，避免爬虫抓到大量近似页面 */
   integrations: [
+    /**
+     * MDX 支持。
+     *
+     * 为什么需要它：文章里要嵌入自定义组件（比如视频播放器 Video.astro），
+     * 而 .md 文件不支持 import 组件，必须用 .mdx。
+     * 注意 @astrojs/mdx 装了之后**还必须在 integrations 里注册**，
+     * 否则构建时只会给一条警告：
+     *   [glob-loader] No entry type found for tech/xxx.mdx
+     * 然后静默跳过整个文件 —— 页面不生成，也不报错，很容易误判成
+     * "草稿没发布"而查错方向。
+     */
+    mdx(),
+
     sitemap({
       filter: (page) => !page.includes('/tags/'),
     }),

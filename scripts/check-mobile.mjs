@@ -73,7 +73,7 @@ const DEVICES = [
   { name: 'Pixel-7', width: 412, height: 915, dpr: 2.6 },
 ];
 
-const PAGES = ['/', '/tech/', '/tech/network-troubleshooting/', '/tags/', '/videos/', '/about/'];
+const PAGES = ['/', '/tech/', '/tech/network-troubleshooting/', '/tags/', '/videos/', '/competitions/', '/about/'];
 
 let problems = 0;
 

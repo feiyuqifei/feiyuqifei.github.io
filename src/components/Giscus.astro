@@ -27,6 +27,22 @@ const ready = GISCUS.enabled && GISCUS.repoId !== '' && GISCUS.categoryId !== ''
   {
     ready ? (
       <>
+        {/*
+          ⚠️ 注释必须写在这里，不能写进下面 <script> 的属性列表中间。
+          把 {/* *\/} 插在属性之间会破坏 Astro 编译器的解析，
+          连带把后面脚本块的 TS 作用域搞坏 —— 表现为 astro check
+          报出 29 个莫名其妙的错误（Cannot find name 'giscus'、
+          Unexpected token 等），而页面本身却能正常构建，非常难定位。
+
+          两个属性的取舍理由：
+          · data-strict 必须与 mapping:'og:title' 搭配。GitHub 搜索是
+            模糊匹配，标题相近时可能匹配到别的文章的 discussion；
+            strict 改为用标题的 SHA-1 哈希在正文里精确查找。
+          · 保留 data-loading="lazy"：评论区在页面最底部，没滚到那里
+            就不该白耗读者的流量去拉取 Giscus。曾因排查误判把它去掉过，
+            实际原因是我等待时间不够（实测 client.js 与 widget 各需 6~9 秒），
+            经 40 秒轮询确认带 lazy 也能正常加载。
+        */}
         <script
           src="https://giscus.app/client.js"
           is:inline
@@ -35,30 +51,12 @@ const ready = GISCUS.enabled && GISCUS.repoId !== '' && GISCUS.categoryId !== ''
           data-category={GISCUS.category}
           data-category-id={GISCUS.categoryId}
           data-mapping={GISCUS.mapping}
-          {/*
-            data-strict 必须与 mapping:'og:title' 搭配。
-            GitHub 搜索是模糊匹配，标题相近时可能匹配到别的文章的 discussion；
-            strict 改为用标题的 SHA-1 哈希在正文里精确查找。
-          */}
           data-strict={GISCUS.strict ? '1' : '0'}
           data-reactions-enabled="1"
           data-emit-metadata="0"
           data-input-position="top"
           data-theme="preferred_color_scheme"
           data-lang={GISCUS.lang}
-          {/*
-            恢复 data-loading="lazy"。
-            曾经因为排查误判把它去掉了 —— 当时看到 iframe 停在 about:blank、
-            widget 请求未发出，判定为 lazy 导致加载失败。
-            实际原因是我等待时间不够：实测时间线显示
-            client.js 响应耗时约 7 秒、widget 响应再约 7 秒，
-            总共约 16 秒才开始渲染。之前只等 6 秒就下结论，测早了。
-            经长时间轮询（40s）确认：带 lazy 也能正常加载。
-
-            保留 lazy 的价值：评论区在页面最底部，没滚到那里就不该
-            白耗读者的流量去拉取 Giscus。按实际阅读行为估算，
-            能省掉三四成读者的这次请求。
-          */}
           data-loading="lazy"
           crossorigin="anonymous"
           async

@@ -79,6 +79,7 @@ export const NAV = [
   { text: '技术文章', href: '/tech/' },
   { text: '工具分享', href: '/tools/' },
   { text: '视频', href: '/videos/' },
+  { text: '竞赛', href: '/competitions/' },
   { text: '标签', href: '/tags/' },
   { text: '归档', href: '/archive/' },
   { text: '关于', href: '/about/' },
@@ -162,9 +163,74 @@ export const VIDEOS: VideoItem[] = [
   },
 ];
 
+/**
+ * 竞赛条目。
+ *
+ * 用途：把各类竞赛的时间、主办方、官网入口集中记在一处，
+ * 报名或查资料时不用每次重新搜索。
+ *
+ * 字段都做成可选（除名称），因为不同竞赛能拿到的信息差别很大 ——
+ * 有的固定每年一届、有的时间待定，有的只有公众号没官网，
+ * 强制填全反而会让人写假数据。
+ */
+export interface CompetitionItem {
+  /** 竞赛名称 */
+  name: string;
+  /**
+   * 当前状态，决定它出现在页面的哪一组：
+   *   open      —— 报名中（最需要被看到，排最前）
+   *   upcoming  —— 即将开始 / 时间已定但未开放报名
+   *   recurring —— 常年举办或时间待定（按往届时间参考）
+   *   ended     —— 已结束（留档，方便回看赛题）
+   */
+  status: 'open' | 'upcoming' | 'recurring' | 'ended';
+  /** 主办方 */
+  organizer?: string;
+  /** 一句话简介：考什么、适合谁 */
+  desc?: string;
+  /**
+   * 时间说明。刻意用字符串而不是日期：
+   * 竞赛时间往往是"每年 5 月""3 月上旬"这种模糊表述，
+   * 强行写成日期反而失真。排序时按字符串倒序即可。
+   */
+  when?: string;
+  /** 报名截止时间，同样是字符串 */
+  deadline?: string;
+  /** 官网或报名入口 */
+  url?: string;
+  /** 分类，用于页面分组展示 */
+  category?: string;
+}
+
+/**
+ * 竞赛清单 —— 竞赛页的唯一数据源，增删改都只动这里。
+ *
+ * 下面两条是示例，换成你真正关注的竞赛即可。
+ * 也可以直接删掉，页面会显示空状态提示。
+ */
+export const COMPETITIONS: CompetitionItem[] = [
+  {
+    name: '全国大学生信息安全竞赛（CISCN）',
+    status: 'recurring',
+    organizer: '教育部高等学校信息安全专业教学指导委员会',
+    desc: '国内信息安全领域最有分量的赛事之一，分作品赛和技能赛（CTF）。技能赛偏实战，Web、Pwn、逆向、杂项都考。',
+    when: '每年上半年，通常 3 月报名、5~6 月比赛',
+    url: 'http://www.ciscn.cn/',
+    category: 'CTF / 信息安全',
+  },
+  {
+    name: 'CTFHub 技能树 / 竞赛',
+    status: 'recurring',
+    organizer: 'CTFHub',
+    desc: '以技能树闯关形式组织的练习平台，也有定期赛事。适合按知识点系统补漏，HTTP、SQL 注入这类基础题质量不错。',
+    when: '技能树常年开放；赛事不定期',
+    url: 'https://www.ctfhub.com/',
+    category: 'CTF / 练习平台',
+  },
+];
+
 /** 页脚社交链接 —— 把 href 换成你自己的，留空字符串则不显示该图标 */
-export const SOCIALS = [
-  { name: 'GitHub', href: 'https://github.com/feiyuqifei', icon: 'github' },
+export const SOCIALS = [  { name: 'GitHub', href: 'https://github.com/feiyuqifei', icon: 'github' },
   { name: 'RSS', href: '/rss.xml', icon: 'rss' },
 ] as const;
 
@@ -197,7 +263,35 @@ export const SOCIALS = [
  *   Ideas / Polls / Q&A / Show and tell），即使界面是中文也一样，这是正常的。
  *   若想换成别的分类，需要在 GitHub 侧先建好，再重新取 categoryId。
  */
-export const GISCUS = {
+/**
+ * Giscus 配置。
+ *
+ * ⚠️ 这里刻意**不用 `as const`**。
+ * 用 `as const` 会把每个字段收窄成字面量类型，于是
+ * `repoId !== ''` 这种"未填写"的运行时校验会被 TS 判定为恒真：
+ *   error ts(2367): This comparison appears to be unintentional
+ *     because the types '"R_kgDOVBOcQw"' and '""' have no overlap.
+ * 显式声明接口既保住可选字段的语义，也让这类校验合法。
+ * （同类问题在 VideoItem 上也踩过一次，都是 as const 的收窄副作用。）
+ */
+export interface GiscusConfig {
+  enabled: boolean;
+  repo: string;
+  repoId: string;
+  category: string;
+  categoryId: string;
+  /** 页面 ↔ discussion 的映射方式 */
+  mapping: 'pathname' | 'url' | 'title' | 'og:title' | 'specific' | 'number';
+  /**
+   * 严格标题匹配。开启后不再用标题做模糊搜索，
+   * 而是计算标题的 SHA-1 哈希、在 discussion 正文里精确查找。
+   * 与 mapping: 'og:title' / 'title' 搭配时建议开启。
+   */
+  strict: boolean;
+  lang: string;
+}
+
+export const GISCUS: GiscusConfig = {
   enabled: true,
   repo: 'feiyuqifei/feiyuqifei.github.io',
   repoId: 'R_kgDOVBOcQw',
@@ -230,7 +324,7 @@ export const GISCUS = {
    */
   strict: true,
   lang: 'zh-CN',
-} as const;
+};
 
 /**
  * Umami Cloud 访问统计（无 Cookie、不采集个人数据）

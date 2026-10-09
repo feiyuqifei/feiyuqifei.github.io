@@ -122,10 +122,15 @@ async function main() {
      *
      * 判据用 contentDocument 是否可访问：
      *   跨域内容加载成功后为 null；若可访问且为空，说明还停在 about:blank。
+     *
+     * 超时给到 150 秒。原因：giscus.app 的响应速度波动很大，
+     * 实测 client.js 与 widget 各耗时 6~9 秒，正常约 16 秒完成；
+     * 但网络抖动时 60 秒都未必够。曾用 60 秒超时导致一次假失败，
+     * 复查时间线发现实际 16.5 秒就加载好了 —— 是抖动不是故障。
      */
     const loadStart = Date.now();
     let loaded = false;
-    for (let i = 0; i < 120; i++) {
+    for (let i = 0; i < 300; i++) {
       const st = await cdp.evaluate(`(() => {
         const f = document.querySelector('iframe.giscus-frame');
         if (!f) return { state: 'no-iframe' };

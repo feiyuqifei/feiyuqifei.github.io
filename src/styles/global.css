@@ -1772,45 +1772,103 @@ main {
 /* ==========================================================================
    14.5 竞赛页
    ==========================================================================
-   结构：概览行 + 按状态分组的卡片列表。
-   卡片左侧是信息主体，右侧是"官网入口"，窄屏时上下堆叠。
+   两级结构：
+     板块（信息安全竞赛）→ 报名月份（1~12 月）→ 卡片
 
-   状态用左侧竖条 + 徽标颜色区分，不用不同底色 ——
-   四组卡片如果底色各异，页面会显得很花，也削弱了正文的可读性。
+   为什么按报名月份分组而不是比赛时间：
+     报名才是需要行动的时间点，按比赛时间排会让人错过报名。
+
+   视觉层级刻意做成三层递减：板块标题最重、月份标签次之、卡片最轻。
+   卡片不用不同底色区分状态 —— 底色一多页面就花，削弱正文可读性。
    ========================================================================== */
 
-/* ── 顶部概览 ── */
-.comp-summary {
+/* ── 板块 ── */
+.comp-section {
+  margin-bottom: 3.5rem;
+}
+
+.comp-section-head {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 2rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid var(--border);
-  font-size: 0.85rem;
+  align-items: baseline;
+  gap: 0.75rem;
+  margin-bottom: 0.4rem;
 }
 
-.comp-total {
-  color: var(--text-muted);
-  margin-inline-end: 0.25rem;
+.comp-section-title {
+  font-size: 1.42rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0;
+  /* 标题下加一道强调色短线，作为一级分节的锚点 */
+  padding-left: 0.7rem;
+  border-left: 3px solid var(--accent);
+  line-height: 1.2;
 }
 
-.comp-cat {
-  display: inline-block;
-  padding: 0.2rem 0.6rem;
-  border: 1px solid var(--border);
-  border-radius: 999px;
+.comp-section-count {
+  font-size: 0.82rem;
   color: var(--text-faint);
+  font-family: var(--font-mono);
+}
+
+.comp-section-desc {
+  margin: 0 0 2rem;
+  padding-left: 0.7rem;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  line-height: 1.65;
+}
+
+/* ── 月份分组 ── */
+.comp-month {
+  margin-bottom: 2rem;
+}
+
+.comp-month-head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.9rem;
+}
+
+.comp-month-label {
+  flex-shrink: 0;
+  font-size: 0.92rem;
+  font-weight: 650;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 月份与数量之间的延伸细线，把标签和右侧数量视觉上连起来 */
+.comp-month-line {
+  flex: 1 1 auto;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--accent) 40%, var(--border)),
+    var(--border) 60%,
+    transparent
+  );
+}
+
+.comp-month-count {
+  flex-shrink: 0;
   font-size: 0.78rem;
-  white-space: nowrap;
+  color: var(--text-faint);
+  font-family: var(--font-mono);
 }
 
-/* ── 分组 ── */
-.comp-group {
-  margin-bottom: 2.75rem;
+/* 时间待确认的那一组弱化处理，避免和确定的月份抢注意力 */
+.comp-month[data-month='unknown'] .comp-month-label {
+  color: var(--text-faint);
+  font-weight: 550;
 }
 
+.comp-month[data-month='unknown'] .comp-month-line {
+  background: linear-gradient(90deg, var(--border), transparent);
+}
+
+/* ── 卡片 ── */
 .comp-list {
   list-style: none;
   padding: 0;
@@ -1823,13 +1881,12 @@ main {
   gap: 1.25rem;
   align-items: flex-start;
   justify-content: space-between;
-  padding: 1.1rem 1.25rem 1.1rem 1.4rem;
+  padding: 1.1rem 1.25rem;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-elevated);
   margin-bottom: 0.85rem;
-  /* 左侧状态竖条 */
-  border-left: 3px solid var(--border);
+  border-left: 3px solid color-mix(in srgb, var(--accent) 30%, var(--border));
 
   transition:
     transform var(--dur) var(--ease-out),
@@ -1839,26 +1896,7 @@ main {
   &:hover {
     transform: translateY(-2px);
     box-shadow: var(--shadow);
-  }
-
-  /* 四种状态各给一个颜色。用强调色系的不同明度，
-     而不是蓝/绿/红这种互相打架的色相。 */
-  &.is-open {
     border-left-color: var(--accent);
-  }
-
-  &.is-upcoming {
-    border-left-color: color-mix(in srgb, var(--accent) 55%, var(--border));
-  }
-
-  &.is-recurring {
-    border-left-color: color-mix(in srgb, var(--accent) 28%, var(--border));
-  }
-
-  &.is-ended {
-    border-left-color: var(--border);
-    /* 已结束的降低存在感，视觉上退到后面 */
-    opacity: 0.72;
   }
 }
 
@@ -1872,58 +1910,78 @@ main {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.6rem;
-  margin-bottom: 0.35rem;
+  margin-bottom: 0.6rem;
 }
 
 .comp-name {
-  font-size: 1.02rem;
+  font-size: 1.04rem;
   font-weight: 650;
   line-height: 1.4;
   margin: 0;
 }
 
-.comp-tag {
+.comp-badge {
   flex-shrink: 0;
   padding: 0.12rem 0.5rem;
-  border-radius: var(--radius-sm);
-  background: var(--accent-soft);
-  color: var(--accent);
+  border-radius: 999px;
   font-size: 0.72rem;
   white-space: nowrap;
+
+  &.is-open {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  &.is-upcoming {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+
+  /* 未查证的月份用虚线描边中性色，与「即将开始」的强调色区分开 */
+  &.is-unverified {
+    background: transparent;
+    border: 1px dashed var(--border);
+    color: var(--text-faint);
+    cursor: help;
+  }
 }
 
-.comp-meta {
-  margin: 0.15rem 0;
-  font-size: 0.845rem;
-  color: var(--text-muted);
-  line-height: 1.6;
-}
+/*
+ * 字段用 dl/dt/dd 而不是一堆 p：
+ * 语义上这确实是"名称—值"的对应关系，读屏软件能正确朗读，
+ * 视觉上也天然形成两列对齐。
+ */
+.comp-fields {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.34rem 0.9rem;
+  margin: 0;
 
-.comp-label {
-  display: inline-block;
-  min-width: 2.4em;
-  margin-inline-end: 0.5rem;
-  color: var(--text-faint);
-  font-size: 0.78rem;
-}
+  dt {
+    color: var(--text-faint);
+    font-size: 0.79rem;
+    line-height: 1.65;
+    white-space: nowrap;
+  }
 
-.comp-deadline {
-  margin-inline-start: 0.6rem;
-  color: var(--accent);
-}
+  dd {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.855rem;
+    line-height: 1.65;
+    min-width: 0;
+    overflow-wrap: anywhere;
 
-.comp-year {
-  margin-inline-start: 0.5rem;
-  padding: 0.05rem 0.4rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  color: var(--text-faint);
-  font-size: 0.72rem;
-  font-family: var(--font-mono);
+    /* 报名截止用强调色，这是最需要被看到的字段 */
+    &.is-em {
+      color: var(--accent);
+      font-weight: 600;
+    }
+  }
 }
 
 .comp-desc {
-  margin: 0.5rem 0 0;
+  margin: 0.7rem 0 0;
   font-size: 0.9rem;
   color: var(--text-muted);
   line-height: 1.7;
@@ -1951,17 +2009,30 @@ main {
   }
 }
 
-/* 窄屏：入口按钮换到下一行，避免与标题挤在一起 */
+/* 窄屏：入口按钮换到下一行；字段表改为上下堆叠，避免两列挤成一团 */
 @media (max-width: 620px) {
   .comp-item {
     flex-direction: column;
     gap: 0.85rem;
-    padding: 1rem 1rem 1rem 1.15rem;
+    padding: 1rem 1rem 1rem 1.1rem;
   }
 
   .comp-link {
     align-self: stretch;
     text-align: center;
+  }
+
+  .comp-fields {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.1rem;
+
+    dt {
+      margin-top: 0.4rem;
+    }
+  }
+
+  .comp-section-title {
+    font-size: 1.24rem;
   }
 }
 
@@ -1971,6 +2042,7 @@ main {
     transform: none;
   }
 }
+
 
 /* ==========================================================================
    15. 手机端覆盖（必须放在文件最后）

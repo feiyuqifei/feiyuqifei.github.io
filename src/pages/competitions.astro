@@ -2,50 +2,71 @@
 /**
  * 竞赛页。
  *
- * 定位不是"参赛履历"，而是**竞赛信息库**：把各类竞赛的时间、主办方、
- * 官网入口集中记在一处，报名或查资料时不用每次重新搜索。
+ * 定位不是"参赛履历"，而是**竞赛信息库**：把各类竞赛的报名时间、地点、
+ * 主办方、官网入口集中记在一处，报名或查资料时不用每次重新搜索。
  *
- * 数据全部来自 src/consts.ts 的 COMPETITIONS，页面本身不含内容 ——
- * 增删竞赛只改配置，不用碰这个文件。
+ * 数据全部来自 src/consts.ts 的 COMPETITIONS，页面本身不含内容。
  *
- * 按状态分四组渲染，顺序即优先级：
- *   报名中   —— 最需要被看到，排最前
- *   即将开始 —— 时间已定但还没开放报名
- *   常年/待定 —— 按往届时间参考
- *   已结束   —— 留档，方便回看赛题
+ * 两级分组：
+ *   第一级 —— 板块（COMPETITION_GROUPS，目前只有「信息安全竞赛」）
+ *   第二级 —— 报名月份（1~12 月，按时间先后排；拿不到月份的归入末尾）
+ *
+ * 为什么按"报名月份"而不是比赛时间排：
+ *   报名时间才是你需要行动的那个时间点。比赛时间晚于报名，
+ *   按比赛时间排会让你错过报名。
  */
 import Layout from '../layouts/Layout.astro';
-import { SITE, COMPETITIONS, type CompetitionItem } from '../consts';
+import {
+  SITE,
+  COMPETITIONS,
+  COMPETITION_GROUPS,
+  type CompetitionItem,
+  type CompetitionGroupKey,
+} from '../consts';
 import { withBase } from '../utils/url';
 
-const GROUPS = [
-  { key: 'open', title: '报名中', hint: '现在就能报', cls: 'is-open' },
-  { key: 'upcoming', title: '即将开始', hint: '时间已定，尚未开放报名', cls: 'is-upcoming' },
-  { key: 'recurring', title: '常年 / 时间待定', hint: '按往届时间作参考', cls: 'is-recurring' },
-  { key: 'ended', title: '已结束', hint: '留档备查', cls: 'is-ended' },
-] as const;
+/** 月份标签 */
+const MONTH_NAMES = [
+  '1 月', '2 月', '3 月', '4 月', '5 月', '6 月',
+  '7 月', '8 月', '9 月', '10 月', '11 月', '12 月',
+];
 
-const grouped = GROUPS.map((g) => ({
-  ...g,
-  items: COMPETITIONS.filter((c) => c.status === g.key),
-})).filter((g) => g.items.length > 0);
+/** 按板块 → 月份两级分组 */
+const groupKeys = Object.keys(COMPETITION_GROUPS) as CompetitionGroupKey[];
 
-/** 按分类统计，用于顶部概览 */
-const categories = [...new Set(COMPETITIONS.map((c) => c.category).filter(Boolean))] as string[];
+const sections = groupKeys
+  .map((key) => {
+    const items = COMPETITIONS.filter((c) => c.group === key);
 
-/**
- * 从往届时间文本里提取年份，用于排序与展示。
- * 时间字段是自由文本（如"每年 5 月"），拿不到年份就返回 null。
- */
-function yearOf(c: CompetitionItem): number | null {
-  const m = /(19|20)\d{2}/.exec(c.when ?? c.deadline ?? '');
-  return m ? Number(m[0]) : null;
-}
+    /* 有月份的按 1~12 排，无月份的排到末尾 */
+    const withMonth = items
+      .filter((c) => typeof c.month === 'number')
+      .sort((a, b) => (a.month as number) - (b.month as number));
+    const withoutMonth = items.filter((c) => typeof c.month !== 'number');
+
+    /* 按月份聚合成桶，保持月份先后顺序 */
+    const buckets: { month: number | null; label: string; items: CompetitionItem[] }[] = [];
+    for (const item of withMonth) {
+      const m = item.month as number;
+      const last = buckets[buckets.length - 1];
+      if (last && last.month === m) {
+        last.items.push(item);
+      } else {
+        buckets.push({ month: m, label: MONTH_NAMES[m - 1] ?? `${m} 月`, items: [item] });
+      }
+    }
+    if (withoutMonth.length > 0) {
+      buckets.push({ month: null, label: '时间待确认', items: withoutMonth });
+    }
+
+    return { key, meta: COMPETITION_GROUPS[key], total: items.length, buckets };
+  })
+  .filter((s) => s.total > 0);
 ---
 
 <Layout
   title="竞赛"
-  description={`${SITE.name}的竞赛信息库：各类竞赛的时间、主办方与官网入口。`}
+  description={`${SITE.name}的竞赛信息库：各类竞赛的报名时间、地点、主办方与官网入口，按报名月份归档。`}
   progress
 >
   <header class="page-head">
@@ -56,13 +77,13 @@ function yearOf(c: CompetitionItem): number | null {
     </nav>
     <h1>竞赛</h1>
     <p class="page-desc">
-      这里放的是各类竞赛的信息：什么时候办、谁主办、考什么、从哪报名。
-      目的是下次想报名或查资料时不用重新搜一遍。
+      竞赛的报名时间、地点、主办方与官网入口。<strong>按报名月份归档</strong>
+      —— 报名时间才是需要行动的那个时间点，所以排序以它为准。
     </p>
   </header>
 
   {
-    COMPETITIONS.length === 0 ? (
+    sections.length === 0 ? (
       <div class="empty-state">
         <p class="empty-title">还没有收录竞赛</p>
         <p>
@@ -71,50 +92,90 @@ function yearOf(c: CompetitionItem): number | null {
         </p>
       </div>
     ) : (
-      <>
-        {/* ── 概览 ── */}
-        <div class="comp-summary">
-          <span class="comp-total">共 {COMPETITIONS.length} 项</span>
-          {categories.map((c: string) => (
-            <span class="comp-cat">{c}</span>
-          ))}
-        </div>
+      sections.map((section) => (
+        <section class="comp-section" aria-label={section.meta.name}>
+          {/* ── 板块标题 ── */}
+          <div class="comp-section-head">
+            <h2 class="comp-section-title">{section.meta.name}</h2>
+            <span class="comp-section-count">{section.total} 项</span>
+          </div>
+          <p class="comp-section-desc">{section.meta.desc}</p>
 
-        {/* ── 分组列表 ── */}
-        {grouped.map((g) => (
-          <section class="comp-group" aria-label={g.title}>
-            <div class="list-head">
-              <h2>{g.title}</h2>
-              <span class="count">
-                {g.items.length} 项 · {g.hint}
-              </span>
-            </div>
+          {/* ── 按月份分桶 ── */}
+          {section.buckets.map((bucket) => (
+            <div class="comp-month" data-month={bucket.month ?? 'unknown'}>
+              <div class="comp-month-head">
+                <span class="comp-month-label">{bucket.label}</span>
+                <span class="comp-month-line" aria-hidden="true"></span>
+                <span class="comp-month-count">{bucket.items.length} 项</span>
+              </div>
 
-            <ul class="comp-list">
-              {g.items.map((c: CompetitionItem) => {
-                const y = yearOf(c);
-                return (
-                  <li class={`comp-item ${g.cls}`}>
+              <ul class="comp-list">
+                {bucket.items.map((c: CompetitionItem) => (
+                  <li class="comp-item">
                     <div class="comp-main">
                       <div class="comp-head">
                         <h3 class="comp-name">{c.name}</h3>
-                        {c.category && <span class="comp-tag">{c.category}</span>}
+                        {c.status === 'open' && <span class="comp-badge is-open">报名中</span>}
+                        {c.status === 'upcoming' && <span class="comp-badge is-upcoming">即将开始</span>}
+                        {/*
+                          月份可信度标记。
+                          没查证过的月份必须显式标出来 —— 竞赛月份报错会让人
+                          整年错过报名，不能让读者以为所有月份都一样可信。
+                        */}
+                        {typeof c.month === 'number' && !c.monthVerified && (
+                          <span class="comp-badge is-unverified" title="该月份未查证，是按常见规律推断的，请以官网为准">
+                            月份待核实
+                          </span>
+                        )}
                       </div>
 
-                      {c.organizer && (
-                        <p class="comp-meta">
-                          <span class="comp-label">主办</span>
-                          {c.organizer}
-                        </p>
-                      )}
-
-                      {(c.when || c.deadline) && (
-                        <p class="comp-meta">
-                          <span class="comp-label">时间</span>
-                          {c.when}
-                          {c.deadline && <span class="comp-deadline">报名截止：{c.deadline}</span>}
-                          {y && <span class="comp-year">{y}</span>}
-                        </p>
+                      {/* 报名与比赛时间 */}
+                      {(c.registerAt || c.deadline || c.when) && (
+                        <dl class="comp-fields">
+                          {c.registerAt && (
+                            <>
+                              <dt>报名时间</dt>
+                              <dd>{c.registerAt}</dd>
+                            </>
+                          )}
+                          {c.deadline && (
+                            <>
+                              <dt>报名截止</dt>
+                              <dd class="is-em">{c.deadline}</dd>
+                            </>
+                          )}
+                          {c.when && (
+                            <>
+                              <dt>比赛时间</dt>
+                              <dd>{c.when}</dd>
+                            </>
+                          )}
+                          {c.location && (
+                            <>
+                              <dt>地点</dt>
+                              <dd>{c.location}</dd>
+                            </>
+                          )}
+                          {c.organizer && (
+                            <>
+                              <dt>主办方</dt>
+                              <dd>{c.organizer}</dd>
+                            </>
+                          )}
+                          {c.advisor && (
+                            <>
+                              <dt>指导方</dt>
+                              <dd>{c.advisor}</dd>
+                            </>
+                          )}
+                          {c.eligibility && (
+                            <>
+                              <dt>参赛资格</dt>
+                              <dd>{c.eligibility}</dd>
+                            </>
+                          )}
+                        </dl>
                       )}
 
                       {c.desc && <p class="comp-desc">{c.desc}</p>}
@@ -126,30 +187,36 @@ function yearOf(c: CompetitionItem): number | null {
                       </a>
                     )}
                   </li>
-                );
-              })}
-            </ul>
-          </section>
-        ))}
-      </>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </section>
+      ))
     )
   }
 
-  <section style="margin-top:3rem" aria-label="说明">
+  <section style="margin-top:2.5rem" aria-label="说明">
     <div class="list-head">
       <h2>关于收录</h2>
     </div>
     <div class="prose" style="font-size:.95rem">
       <p>
-        竞赛时间每年都可能调整，这里记的主要是<strong>往届规律</strong>和官网入口。
-        真要报名，以官网公告为准 —— 这也是每条都附链接的原因。
+        时间标的是<strong>最近一届的实际时间</strong>，用来推断「通常几月报名」。
+        竞赛时间每年都会浮动，<strong>当届务必以官网为准</strong> ——
+        这也是每条都附链接的原因。
       </p>
       <p>
-        收录标准只有一条：<strong>自己真会去看的</strong>。
-        不做大而全的导航站，网上那种列表已经很多了，缺的是筛过一遍的。
+        带 <span class="comp-badge is-unverified">月份待核实</span> 标记的条目，
+        月份<strong>是按常见规律推断的，没有查证过当届通知</strong>，可能就是错的。
+        查证过的条目不加这个标记。宁可你多点一次官网，也不要让你按错月份去等报名。
       </p>
       <p>
-        如果某条信息过期了，直接看官网确认即可；这个页面不追求实时同步。
+        按报名月份归档而不是比赛时间：报名才是需要你行动的时间点，
+        按比赛时间排容易错过报名。
+      </p>
+      <p>
+        标注「时间待确认」的条目是暂时没查到可靠时间的，留在这里占位，查到后补上。
       </p>
     </div>
   </section>

@@ -166,16 +166,22 @@ export const VIDEOS: VideoItem[] = [
 /**
  * 竞赛条目。
  *
- * 用途：把各类竞赛的时间、主办方、官网入口集中记在一处，
+ * 用途：把各类竞赛的时间、地点、主办方、官网入口集中记在一处，
  * 报名或查资料时不用每次重新搜索。
  *
- * 字段都做成可选（除名称），因为不同竞赛能拿到的信息差别很大 ——
+ * 字段都做成可选（除名称与分组），因为不同竞赛能拿到的信息差别很大 ——
  * 有的固定每年一届、有的时间待定，有的只有公众号没官网，
  * 强制填全反而会让人写假数据。
  */
 export interface CompetitionItem {
   /** 竞赛名称 */
   name: string;
+  /**
+   * 所属板块。目前只有一个：
+   *   infosec —— 信息安全竞赛
+   * 以后要加别的方向（如算法竞赛、机器人大赛），在这里扩展即可。
+   */
+  group: CompetitionGroupKey;
   /**
    * 当前状态，决定它出现在页面的哪一组：
    *   open      —— 报名中（最需要被看到，排最前）
@@ -184,53 +190,323 @@ export interface CompetitionItem {
    *   ended     —— 已结束（留档，方便回看赛题）
    */
   status: 'open' | 'upcoming' | 'recurring' | 'ended';
+  /**
+   * 报名月份，用于按月分组与排序。取值 1~12。
+   *
+   * 为什么用"月份"而不是完整日期：
+   * 竞赛报名时间每年浮动（今年 3 月、明年可能 4 月），
+   * 写死具体日期第二年就错了；而"通常几月报名"这个规律相对稳定，
+   * 按月归档既好找又不那么容易过期。
+   * 拿不到月份就留空，页面会归入「时间待确认」。
+   */
+  month?: number;
+  /**
+   * month 是否经过查证。
+   *
+   * true  —— 打开过当届通知原文，月份是抄下来的
+   * false / 省略 —— 未查证，月份是按常见规律推断的，**可能错**
+   *
+   * 页面会对未查证的条目显示「月份待核实」标记。
+   * 这不是形式主义：竞赛月份报错会让人整年错过报名，
+   * 必须让读者一眼看出哪些数字可以信、哪些要自己去核实。
+   */
+  monthVerified?: boolean;
+  /**
+   * 报名时间的文字说明，例如「3 月上旬 — 4 月 10 日」。
+   * 这是给出具体信息的地方，month 只负责排序。
+   */
+  registerAt?: string;
+  /** 报名截止时间（文字），例如「4 月 10 日 24:00」 */
+  deadline?: string;
+  /** 比赛时间（文字），例如「5 月 17 日初赛，6 月决赛」 */
+  when?: string;
+  /** 比赛地点，例如「线上初赛 + 西安线下决赛」 */
+  location?: string;
   /** 主办方 */
   organizer?: string;
-  /** 一句话简介：考什么、适合谁 */
+  /** 指导方 / 支持单位 */
+  advisor?: string;
+  /** 竞赛简介：考什么、适合谁 */
   desc?: string;
-  /**
-   * 时间说明。刻意用字符串而不是日期：
-   * 竞赛时间往往是"每年 5 月""3 月上旬"这种模糊表述，
-   * 强行写成日期反而失真。排序时按字符串倒序即可。
-   */
-  when?: string;
-  /** 报名截止时间，同样是字符串 */
-  deadline?: string;
+  /** 面向人群与学历要求，例如「全国在校本专科生，含高职高专组」 */
+  eligibility?: string;
   /** 官网或报名入口 */
   url?: string;
-  /** 分类，用于页面分组展示 */
-  category?: string;
 }
+
+/**
+ * 竞赛板块。竞赛页按板块分节渲染，每节内部再按报名月份分组。
+ * 以后加新方向（算法、机器人等）只需在这里加一项。
+ */
+export const COMPETITION_GROUPS = {
+  infosec: {
+    key: 'infosec',
+    name: '信息安全竞赛',
+    desc: '网络安全、CTF、数据安全方向的赛事。按报名月份归档，方便提前安排。',
+  },
+} as const;
+
+export type CompetitionGroupKey = keyof typeof COMPETITION_GROUPS;
 
 /**
  * 竞赛清单 —— 竞赛页的唯一数据源，增删改都只动这里。
  *
- * 下面两条是示例，换成你真正关注的竞赛即可。
- * 也可以直接删掉，页面会显示空状态提示。
+ * 时间信息说明：下面标注的报名时间是**最近一届**的实际时间，
+ * 用于推断「通常几月报名」。当届时间务必以官网为准。
  */
 export const COMPETITIONS: CompetitionItem[] = [
+  /*
+   * ⚠️ 关于时间字段的可靠性等级（重要，改数据前先读）
+   *
+   *   [查证] —— 我打开过通知原文，时间是抄下来的，可信
+   *   [推断] —— 只查到届数或大致季节，月份是我按常见规律推的，可能错
+   *   [未知] —— 没查到，留空归入「时间待确认」
+   *
+   * 为什么要标这个：竞赛不比其他内容，月份报错会让人整年错过报名。
+   * 宁可显示「待确认」，也不要写一个看起来具体、实际是猜的月份。
+   * 你补数据时请优先消灭 [推断]。
+   */
+
+  /* ─────── CISCN 体系：这是三个独立赛事，不是一个 ─────── */
   {
-    name: '全国大学生信息安全竞赛（CISCN）',
+    name: '全国大学生信息安全竞赛·创新实践能力赛',
+    group: 'infosec',
     status: 'recurring',
-    organizer: '教育部高等学校信息安全专业教学指导委员会',
-    desc: '国内信息安全领域最有分量的赛事之一，分作品赛和技能赛（CTF）。技能赛偏实战，Web、Pwn、逆向、杂项都考。',
-    when: '每年上半年，通常 3 月报名、5~6 月比赛',
-    url: 'http://www.ciscn.cn/',
-    category: 'CTF / 信息安全',
+    /* [查证] 第十九届官方《参赛规程》：报名截止 12/21，初赛 2025/12/28，半决赛 2026/3/22，总决赛 2026/7 */
+    month: 12,
+    monthVerified: true,
+    registerAt: '11 月上旬 — 12 月 21 日',
+    deadline: '12 月下旬（0 时截止）',
+    when: '12 月下旬线上初赛 → 次年 3 月下旬分赛区半决赛 → 次年 7 月全国总决赛',
+    location:
+      '线上初赛 + 六大分赛区线下半决赛 + 总决赛。赛区划分：辽宁赛区（辽吉黑京鲁）、陕西赛区（陕宁青新晋蒙甘）、浙江赛区（沪浙苏皖）、广东赛区（粤桂闽琼港澳赣）、湖北赛区（鄂豫冀津）、重庆赛区（川渝云贵藏湘）',
+    organizer: '中国信息安全测评中心、教育部高等学校网络空间安全专业教学指导委员会',
+    advisor: '中国互联网发展基金会',
+    eligibility:
+      '全日制在校学生（含高职高专、本科生、硕士研究生）；每队 ≤4 人，可校内跨年级跨专业，不可跨校；不收报名费',
+    desc: 'CISCN 的实战赛道。每家高校最多 2 支队伍晋级分区半决赛（半决赛承办校多 1 个名额），各赛区取不超过 100 支队伍；分区赛前 5 名直接晋级总决赛，总决赛名额约 80 个。半决赛参赛者获 NISP 一级证书，总决赛一等奖获 CISP-PTE 证书。',
+    url: 'http://www.ciscn.cn/index.php/competition/securityCompetition?compet_id=44',
   },
   {
-    name: 'CTFHub 技能树 / 竞赛',
+    name: '长城杯 网数智安全大赛·防护赛',
+    group: 'infosec',
     status: 'recurring',
-    organizer: 'CTFHub',
-    desc: '以技能树闯关形式组织的练习平台，也有定期赛事。适合按知识点系统补漏，HTTP、SQL 注入这类基础题质量不错。',
-    when: '技能树常年开放；赛事不定期',
-    url: 'https://www.ctfhub.com/',
-    category: 'CTF / 练习平台',
+    /* [查证] 与 CISCN 创新实践能力赛合并初赛与半决赛；决赛 2026/4 福州 */
+    month: 12,
+    monthVerified: true,
+    registerAt: '与 CISCN 创新实践能力赛同步（11 月 — 12 月）',
+    deadline: '12 月下旬',
+    when: '12 月下旬线上初赛 → 次年 3 月下旬半决赛 → 次年 4 月决赛',
+    location: '决赛拟于福州，与第九届数字中国建设峰会同期举办',
+    organizer: '中国信息安全测评中心等',
+    advisor: '教育部高等学校网络空间安全专业教学指导委员会',
+    eligibility: '同 CISCN 创新实践能力赛',
+    desc: '与 CISCN 创新实践能力赛合并初赛和半决赛，决赛单独举办。各赛区半决赛取前 25 支队伍晋级。决赛一等奖获 CISP-PTE 证书，二等奖与专项奖获 NISP 二级证书。',
+    url: 'http://ccb.itsec.gov.cn/',
+  },
+  {
+    name: '全国大学生信息安全竞赛·作品赛（自由作品赛道）',
+    group: 'infosec',
+    status: 'recurring',
+    /* [查证] 竞赛章程第二十三条：报名 3—6 月，决赛 7—8 月，9/1 前完成 */
+    month: 3,
+    monthVerified: true,
+    registerAt: '3 月 — 6 月（章程规定的原则时间）',
+    deadline: '6 月下旬（网上报名与作品提交同期截止）',
+    when: '6 月底公布初赛名单，7 月线上初评，7—8 月线下决赛',
+    location: '线上初评 + 承办高校线下决赛（历届由不同高校承办）',
+    organizer: '教育部高等学校网络空间安全专业教学指导委员会',
+    advisor: '中国互联网发展基金会',
+    eligibility:
+      '全国在校全日制本、专科大学生均可参加，专业不限（章程第十二条）；每队 ≤4 人含组长，不允许跨校组队；每队参赛费 200 元',
+    desc: '开放式自主命题、自主设计，提交作品与报告，偏创新设计与工程实现，不是 CTF。章程第二十条明确「只接受防御性题目，不接受任何具有攻击性质」的题目。第十九届起与「长城杯」作品赛合并。',
+    url: 'http://www.ciscn.cn/index.php/competition/securityCompetition?compet_id=45',
+  },
+  {
+    name: '全国大学生信息安全竞赛·命题挑战赛',
+    group: 'infosec',
+    status: 'recurring',
+    /* [推断] 与作品赛同期，章程未单列；月份沿用作品赛 */
+    month: 3,
+    registerAt: '与作品赛同期（推断，待查证）',
+    when: '与作品赛同期（推断，待查证）',
+    location: '见官网',
+    organizer: '教育部高等学校网络空间安全专业教学指导委员会',
+    advisor: '中国互联网发展基金会',
+    desc: 'CISCN 的第三个赛道：主办方给出命题（官方通知附《命题挑战赛赛题》），参赛队按命题完成作品。第十九届起与「长城杯」作品赛合并。⚠️ 时间沿用作品赛，未单独核实。',
+    url: 'http://www.ciscn.cn/index.php/competition/securityCompetition?compet_id=46',
+  },
+  {
+    name: '京津冀大学生信息安全网络攻防大赛',
+    group: 'infosec',
+    status: 'recurring',
+    /* [查证] 2026 年官方通知（天津市大学软件学院发布）：报名 7/1—9/10，初赛 9/13，决赛 10/11 */
+    month: 7,
+    monthVerified: true,
+    registerAt: '7 月上旬 — 9 月上旬',
+    deadline: '9 月 10 日',
+    when: '9 月中旬线上初赛 → 10 月中旬线下决赛',
+    location: '线上初赛 + 天津市大学软件学院线下决赛',
+    organizer: '天津市教育委员会、北京市教育委员会、河北省教育厅',
+    advisor: '承办：天津市大学软件学院（京津冀软件人才培养基地）；协办：天津工业大学；技术支持：奇安信',
+    eligibility:
+      '⚠️ 仅限天津市、北京市、河北省【普通本科高校】全日制本科在校生，无专业限制 —— 专科生与外省学生均不能参加',
+    desc: '初赛为理论知识（30%）+ CTF（70%），理论涵盖信息安全政策法规、密码学、网络与云安全，CTF 涵盖逆向、漏洞挖掘与利用、Web 安全。决赛为「渗透测试（50%）+ 应急响应（50%）」实战赛。不收取任何费用；一等奖团队获奇安信 QCCA 应急响应认证及安全服务团队实习面试资格。入围决赛队伍不超过初赛报名总数的 50%。',
+    url: 'https://www.tjise.edu.cn/info/1008/5580.htm',
+  },
+  {
+    name: '强网杯 全国网络安全挑战赛',
+    group: 'infosec',
+    status: 'recurring',
+    /* [查证] 第九届：9—11 月，10 月下旬线上赛，11 月下旬线下赛 */
+    month: 9,
+    monthVerified: true,
+    registerAt: '9 月 — 10 月',
+    when: '10 月下旬线上赛，11 月下旬线下赛',
+    location: '线上初赛 + 郑州线下决赛',
+    organizer:
+      '河南省委网信办、河南省教育厅、郑州市人民政府、信息工程大学、郑州大学、中国网络空间安全协会',
+    advisor: '中央网信办、河南省人民政府',
+    eligibility:
+      '国内高校、企业、机构等网络安全力量；须中国国籍（不含港澳台）；线上赛每队 ≤10 人，线下赛每队 ≤4 人',
+    desc: '国家级网络安全赛事，含线上赛、线下赛、行业领域专项赛（漏洞智能分析、天基互联网安全、车联网安全）与创新创业专项赛。线下赛取线上排名前 32 支队伍。',
+    url: 'https://www.qiangwangbei.com',
+  },
+  {
+    name: '羊城杯 网络安全大赛',
+    group: 'infosec',
+    status: 'recurring',
+    /* [查证] 2025 年：报名 9/15—10/6，初赛 10/11—12，决赛 10/25 */
+    month: 9,
+    monthVerified: true,
+    registerAt: '9 月中旬 — 10 月上旬',
+    deadline: '10 月上旬（24:00 截止）',
+    when: '10 月中旬线上初赛，10 月下旬线下决赛',
+    location: '线上初赛 + 广州线下决赛',
+    organizer: '广州市委网信办',
+    advisor: '广州市网络安全宣传周系列活动之一',
+    eligibility:
+      '面向全国。设本科院校组、高职高专组、党政机关及事业单位组、企业组',
+    desc: '自 2020 年已连续举办五届，累计 6300 多支队伍、1.3 万余人参赛。初赛为在线 CTF，涵盖 Web 安全、逆向、移动安全、二进制漏洞挖掘、密码学、取证分析、隐写分析。本科组前 24 名、其余各组前 12 名进决赛。',
+    url: 'https://ycb.dasctf.com',
+  },
+  {
+    name: '楚慧杯 网络与数据安全实践能力竞赛',
+    group: 'infosec',
+    status: 'recurring',
+    /* [查证] 第十届：报名截止 2026/1 下旬，资格赛 3 月上旬，挑战赛 3 月下旬 */
+    month: 1,
+    monthVerified: true,
+    registerAt: '12 月下旬 — 次年 1 月下旬',
+    deadline: '1 月下旬',
+    when: '3 月上旬资格赛，3 月下旬挑战赛',
+    location: '线上资格赛 + 武汉国家网安基地线下挑战赛',
+    organizer:
+      '湖北省委网信办、湖北省教育厅、湖北省公安厅、湖北省数据局、湖北省通信管理局',
+    advisor:
+      '国家计算机网络应急技术处理协调中心湖北分中心、武汉市委网信办、国家网安基地',
+    eligibility:
+      '面向中华人民共和国境内合法组织与公民。分 W 组（机关企事业单位）、L 组（院校学生，含中等/高等/职业院校）、A 组（安全专业机构）、Q 组（技术爱好者，无挂靠单位可自由组队）',
+    desc: '已办至第十届。聚焦人工智能、物联网、车联网、云计算、大数据，设夺旗赛、综合防御赛、靶场渗透赛。资格赛约前 55 支队伍晋级。Q 组对学生最友好 —— 不需要学校推荐即可报名。',
+    url: 'http://www.whwx.gov.cn/',
+  },
+  {
+    name: 'HKCERT CTF 香港网安夺旗赛',
+    group: 'infosec',
+    status: 'recurring',
+    /* [查证] CTFtime 记录 2026 资格赛 11/6—11/7 */
+    month: 11,
+    monthVerified: true,
+    registerAt: '10 月下旬 — 11 月上旬',
+    when: '11 月上旬资格赛，决赛 12 月',
+    location: '线上',
+    organizer:
+      '香港特区政府数字政策办公室、香港生产力促进局、香港网络保安事故协调中心（HKCERT）',
+    desc: '香港官方网安夺旗赛，已办至第六届，CTFtime 权重 10.31。公开报名，港澳台及境外选手均可参加，地理上离广西近。',
+    eligibility: '公开赛，无学历与地域限制',
+  },
+
+  /* ─────── 以下时间多为推断，需逐个核实 ─────── */
+  {
+    name: '网鼎杯 网络安全大赛',
+    group: 'infosec',
+    status: 'recurring',
+    registerAt: '待确认',
+    when: '已办至第四届',
+    location: '待确认（2024 年决赛在贵阳）',
+    organizer: '公安部',
+    desc: '公安部主办的全国性网络安全赛事，以行业分组对抗著称。⚠️ 官网返回 403，规则为 PDF 无法读取，时间与学历要求均未查证 —— 请自行查阅官网规则文件。',
+    url: 'https://www.wangdingcup.com/',
+  },
+  {
+    name: '古剑山 全国大学生网络攻防大赛',
+    group: 'infosec',
+    status: 'recurring',
+    registerAt: '待确认',
+    when: '已办至第三届',
+    location: '重庆',
+    organizer: '重庆移通学院等',
+    desc: '第三届 1191 支战队参赛。名称即「全国」，无地域限制。⚠️ 具体报名月份未查证。',
+    eligibility: '全国大学生',
+  },
+  {
+    name: '数字中国创新大赛·数字安全赛道（含红明谷杯）',
+    group: 'infosec',
+    status: 'recurring',
+    registerAt: '待确认',
+    when: '红明谷杯历届初赛在 3 月、决赛在 4 月（2026 年数据）',
+    location: '福建（数字中国建设峰会）',
+    organizer: '数字中国建设峰会组委会',
+    desc: '数字中国建设峰会配套赛事，含网络和数据安全产业赛、红明谷杯等子赛事。政府背景，认可度较高。⚠️ 报名月份未查证。',
+  },
+  {
+    name: '数信杯 数据安全大赛',
+    group: 'infosec',
+    status: 'recurring',
+    registerAt: '待确认',
+    when: '已办至第三届',
+    location: '待确认',
+    organizer: '工业和信息化主管部门',
+    desc: '面向数据安全方向的专项赛事，各省工信主管部门组织参与。⚠️ 时间与资格均未查证。',
+  },
+  {
+    name: '广西大学生「英招杯」网络安全技能大赛',
+    group: 'infosec',
+    status: 'recurring',
+    registerAt: '待确认（首届）',
+    when: '待确认',
+    location: '广西',
+    organizer: '广西相关部门（待确认）',
+    desc: '广西首届大学生网络安全技能大赛。新赛事通常竞争较小，值得优先关注。⚠️ 首届时间与主办单位未查证。',
+    eligibility: '广西高校在校学生（待确认）',
+  },
+  {
+    name: '中国（广西）—东盟人工智能安全攻防大赛',
+    group: 'infosec',
+    status: 'recurring',
+    registerAt: '待确认',
+    when: '待确认',
+    location: '广西',
+    organizer: '广西大数据发展局',
+    desc: '面向中国与东盟国家的人工智能安全攻防赛事，可能有国际赛道。是广西本地少见的具国际性质的赛事。⚠️ 报名月份未查证。',
+    url: 'http://dsjfzj.gxzf.gov.cn/dz/',
+  },
+  {
+    name: '广西教育系统网络安全攻防演习',
+    group: 'infosec',
+    status: 'recurring',
+    registerAt: '待确认',
+    when: '待确认',
+    location: '广西',
+    organizer: '广西教育厅',
+    desc: '面向广西教育系统的攻防演习，分攻击队与防守队。适合在校学生组队参与，实战性强。⚠️ 时间与参与方式未查证。',
+    eligibility: '广西教育系统（待确认）',
   },
 ];
 
 /** 页脚社交链接 —— 把 href 换成你自己的，留空字符串则不显示该图标 */
-export const SOCIALS = [  { name: 'GitHub', href: 'https://github.com/feiyuqifei', icon: 'github' },
+export const SOCIALS = [
+  { name: 'GitHub', href: 'https://github.com/feiyuqifei', icon: 'github' },
   { name: 'RSS', href: '/rss.xml', icon: 'rss' },
 ] as const;
 

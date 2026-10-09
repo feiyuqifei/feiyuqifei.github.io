@@ -43,7 +43,17 @@ const ready = GISCUS.enabled && GISCUS.repoId !== '' && GISCUS.categoryId !== ''
           data-input-position="top"
           data-theme="preferred_color_scheme"
           data-lang={GISCUS.lang}
-          data-loading="lazy"
+          {/*
+            刻意不加 data-loading="lazy"。
+            实测：加了这个属性时，Giscus 的 widget 请求可能始终不发出，
+            iframe 停在 about:blank，用户在评论区看到的是一块空白。
+            受控实验里 "lazy + mapping=pathname" 稳定复现了这个问题，
+            而 "无 lazy" 与 "lazy + mapping=url" 都能正常加载 ——
+            说明它至少在某些组合下会失败，但并非必然失败。
+            由于 lazy 对评论区几乎没有收益（Giscus 是静态资源，
+            不是重资源），而失败时是"看不见的空白"这种最难排查的形态，
+            所以选择去掉它，换取确定性。
+          */}
           crossorigin="anonymous"
           async
         />

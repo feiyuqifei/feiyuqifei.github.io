@@ -65,6 +65,342 @@
 }
 
 /* --------------------------------------------------------------------------
+   1.5 动效令牌
+   --------------------------------------------------------------------------
+   集中管理时长与缓动，避免各处硬编码出不一致的手感。
+   缓动用 ease-out 系：进入视口时先快后慢，观感更自然。
+   -------------------------------------------------------------------------- */
+:root {
+  --ease-out: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur-fast: 0.16s;
+  --dur: 0.28s;
+  --dur-slow: 0.5s;
+}
+
+/* --------------------------------------------------------------------------
+   1.6 阅读进度条
+   -------------------------------------------------------------------------- */
+.reading-progress {
+  position: fixed;
+  /* 紧贴在吸顶导航的下沿；导航高 60px（--header-h） */
+  top: var(--header-h);
+  left: 0;
+  right: 0;
+  height: 2px;
+  z-index: 45;
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity var(--dur) var(--ease-out);
+
+  /* 读到最底部时淡出，不留一条静止的线 */
+  &.is-done {
+    opacity: 0;
+  }
+}
+
+.reading-progress-bar {
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(
+    90deg,
+    var(--accent) 0%,
+    color-mix(in srgb, var(--accent) 55%, #7dd3fc) 100%
+  );
+  /* 用 scaleX 走 GPU 合成，不用 width（每帧重排） */
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  /* 加一点发光，深色主题下更明显 */
+  box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+/* --------------------------------------------------------------------------
+   1.7 返回顶部
+   -------------------------------------------------------------------------- */
+.to-top {
+  position: fixed;
+  right: 1.25rem;
+  bottom: 1.25rem;
+  z-index: 46;
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  cursor: pointer;
+  box-shadow: var(--shadow);
+
+  /* 用 visibility 而不是 display:none —— 后者不参与过渡，会突然蹦出来 */
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(8px) scale(0.92);
+  transition:
+    opacity var(--dur) var(--ease-out),
+    transform var(--dur) var(--ease-out),
+    visibility 0s linear var(--dur),
+    color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out);
+
+  &.is-shown {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+    /* 显示时要把 visibility 的延迟去掉，否则会晚 0.28s 才出现 */
+    transition-delay: 0s;
+  }
+
+  &:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+
+  &:active {
+    transform: translateY(0) scale(0.94);
+  }
+
+  svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  @media (max-width: 640px) {
+    right: 0.9rem;
+    bottom: 0.9rem;
+    width: 38px;
+    height: 38px;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   1.8 滚动显现
+   --------------------------------------------------------------------------
+   渐进增强：默认所有内容可见；只有 JS 跑起来并加了 .reveal-ready
+   之后，未进入视口的元素才被隐藏。这样脚本失败也不会白屏。
+   -------------------------------------------------------------------------- */
+.reveal-ready {
+  .post-item,
+  .section-card,
+  .plan-item,
+  .archive-year,
+  .video-entry {
+    opacity: 0;
+    transform: translateY(14px);
+    transition:
+      opacity var(--dur-slow) var(--ease-out),
+      transform var(--dur-slow) var(--ease-out);
+  }
+
+  .post-item.is-visible,
+  .section-card.is-visible,
+  .plan-item.is-visible,
+  .archive-year.is-visible,
+  .video-entry.is-visible {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* 列表里相邻元素错开一点，形成"依次浮现"的节奏，而不是整块一起动 */
+.reveal-ready .post-list .post-item:nth-child(2) { transition-delay: 0.04s; }
+.reveal-ready .post-list .post-item:nth-child(3) { transition-delay: 0.08s; }
+.reveal-ready .post-list .post-item:nth-child(4) { transition-delay: 0.12s; }
+.reveal-ready .post-list .post-item:nth-child(n + 5) { transition-delay: 0.16s; }
+
+.reveal-ready .section-grid .section-card:nth-child(2) { transition-delay: 0.06s; }
+.reveal-ready .section-grid .section-card:nth-child(3) { transition-delay: 0.12s; }
+
+.reveal-ready .plan-list .plan-item:nth-child(2) { transition-delay: 0.05s; }
+.reveal-ready .plan-list .plan-item:nth-child(3) { transition-delay: 0.1s; }
+.reveal-ready .plan-list .plan-item:nth-child(4) { transition-delay: 0.15s; }
+
+/* --------------------------------------------------------------------------
+   1.9 首屏水波动效
+   --------------------------------------------------------------------------
+   深海的意象：一层极缓的径向光晕在背景里漂移。
+   刻意做得很淡 —— 技术博客的背景一旦抢眼，正文的可读性就毁了。
+   -------------------------------------------------------------------------- */
+.hero {
+  position: relative;
+  isolation: isolate;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: -2rem -1.5rem 0;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: 16px;
+  /* 两道柔和的光晕，颜色取自站点强调色 */
+  background:
+    radial-gradient(
+      52rem 22rem at 12% 18%,
+      color-mix(in srgb, var(--accent) 9%, transparent),
+      transparent 62%
+    ),
+    radial-gradient(
+      38rem 18rem at 88% 62%,
+      color-mix(in srgb, var(--accent) 6%, transparent),
+      transparent 58%
+    );
+  animation: hero-drift 26s var(--ease-in-out) infinite alternate;
+}
+
+@keyframes hero-drift {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.85;
+  }
+  to {
+    transform: translate3d(-2%, 1.5%, 0) scale(1.06);
+    opacity: 1;
+  }
+}
+
+/* 文章页标题区也来一点，但更淡 */
+.article-header {
+  position: relative;
+  isolation: isolate;
+}
+
+.article-header::before {
+  content: '';
+  position: absolute;
+  inset: -1.25rem -1rem -0.5rem;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(
+    34rem 12rem at 8% 0%,
+    color-mix(in srgb, var(--accent) 7%, transparent),
+    transparent 65%
+  );
+}
+
+/* --------------------------------------------------------------------------
+   1.10 悬停微效
+   -------------------------------------------------------------------------- */
+
+/* 卡片：轻微抬起 + 描边亮起。位移只用 2px，多了会显得浮夸 */
+.section-card,
+.plan-item {
+  transition:
+    transform var(--dur) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur) var(--ease-out);
+}
+
+.section-card:hover {
+  transform: translateY(-2px);
+}
+
+/* 导航项：底部一条从中间展开的下划线 */
+.nav a {
+  position: relative;
+
+  &::after {
+    content: '';
+    position: absolute;
+    left: 0.7rem;
+    right: 0.7rem;
+    bottom: 0.15rem;
+    height: 1.5px;
+    background: var(--accent);
+    border-radius: 2px;
+    transform: scaleX(0);
+    transform-origin: 50% 50%;
+    transition: transform var(--dur) var(--ease-out);
+  }
+
+  &:hover::after {
+    transform: scaleX(1);
+  }
+
+  /* 当前页已经有底色标识，不再加下划线，避免双重强调 */
+  &[aria-current='page']::after {
+    transform: scaleX(0);
+  }
+}
+
+/* 标签：悬停时轻微放大并变亮 */
+.tag {
+  transition:
+    transform var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out);
+
+  &:hover {
+    transform: translateY(-1px);
+  }
+}
+
+/* Logo：悬停时"鱼"轻微上浮，呼应跃出水面的意象 */
+.brand:hover .brand-mark {
+  transform: translateY(-2px) rotate(-4deg);
+}
+
+.brand-mark {
+  transition: transform var(--dur) var(--ease-out);
+}
+
+/* 文章标题下的分隔线：hover 链接时给一点提示 */
+.post-item .post-title a {
+  background-image: linear-gradient(var(--accent), var(--accent));
+  background-size: 0% 1.5px;
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+  transition: background-size var(--dur) var(--ease-out);
+
+  &:hover {
+    background-size: 100% 1.5px;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   1.11 减少动态效果
+   --------------------------------------------------------------------------
+   系统里开了"减少动态效果"就把所有装饰性动画关掉。
+   这不是可选项 —— 前庭功能障碍的用户会因视差和漂移产生眩晕。
+   注意：进度条和返回顶部属于功能性反馈，保留但去掉过渡。
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .hero::before,
+  .article-header::before {
+    animation: none;
+  }
+
+  .reveal-ready .post-item,
+  .reveal-ready .section-card,
+  .reveal-ready .plan-item,
+  .reveal-ready .archive-year,
+  .reveal-ready .video-entry {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .section-card:hover,
+  .plan-item:hover,
+  .tag:hover,
+  .brand:hover .brand-mark {
+    transform: none;
+  }
+
+  .to-top {
+    transition: none;
+  }
+
+  .reading-progress-bar,
+  .to-top {
+    transition-duration: 0.01ms;
+  }
+}
+
+/* --------------------------------------------------------------------------
    2. 重置
    -------------------------------------------------------------------------- */
 *,

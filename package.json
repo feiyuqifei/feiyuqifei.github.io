@@ -14,6 +14,7 @@
     "check": "astro check",
     "test:theme": "node scripts/test-theme-toggle.mjs",
     "test:copy": "node scripts/test-copy-button.mjs",
+    "test:effects": "node scripts/test-effects.mjs",
     "check:md": "node scripts/check-markdown-render.mjs",
     "check:style": "node scripts/check-style.mjs",
     "deploy:zip": "python scripts/make-deploy-zip.py",

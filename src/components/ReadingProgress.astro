@@ -1,0 +1,62 @@
+---
+/**
+ * 阅读进度条。
+ *
+ * 一条细的青色进度线，固定在顶栏下沿，随页面滚动填充。
+ * 只在**长内容页**（文章详情、关于页）渲染 —— 列表页和标签页本来就不长，
+ * 加进度条只是噪音。
+ *
+ * 实现要点：
+ *   - 用 transform: scaleX() 而不是改 width。前者走 GPU 合成，
+ *     后者每帧触发重排，长页面滚动时能差出明显帧率。
+ *   - 用 requestAnimationFrame 节流，不在 scroll 回调里直接算。
+ *   - transform-origin 在左边，scaleX 从 0 到 1 就是从左到右填充。
+ */
+---
+
+<div class="reading-progress" data-reading-progress aria-hidden="true">
+  <span class="reading-progress-bar"></span>
+</div>
+
+<script>
+  /**
+   * 用传入的元素类型做参数，避免 any。
+   * rAF 节流：scroll 事件可能一帧触发多次，只保留最后一次。
+   */
+  function initProgress(): void {
+    const wrap = document.querySelector<HTMLElement>('[data-reading-progress]');
+    if (!wrap) return;
+    const bar = wrap.querySelector<HTMLElement>('.reading-progress-bar');
+    if (!bar) return;
+
+    let ticking = false;
+
+    const update = (): void => {
+      ticking = false;
+      const doc = document.documentElement;
+      // 可滚动的总距离；页面不够长时为 0，此时进度按 100% 处理
+      const scrollable = doc.scrollHeight - doc.clientHeight;
+      const progress = scrollable <= 0 ? 1 : doc.scrollTop / scrollable;
+      const clamped = progress < 0 ? 0 : progress > 1 ? 1 : progress;
+      bar.style.transform = `scaleX(${clamped.toFixed(4)})`;
+      // 滚到最底部时隐藏，避免那一条线一直挂着
+      wrap.classList.toggle('is-done', clamped >= 0.999);
+    };
+
+    const onScroll = (): void => {
+      if (ticking) return;
+      ticking = true;
+      window.requestAnimationFrame(update);
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll, { passive: true });
+    update();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initProgress);
+  } else {
+    initProgress();
+  }
+</script>

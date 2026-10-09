@@ -7,9 +7,12 @@ import { SITE, UMAMI } from '../consts';
 import { absoluteUrl } from '../utils/url';
 import { THEME_INIT_SCRIPT } from '../scripts/theme-init';
 import { COPY_BUTTON_SCRIPT } from '../scripts/copy-code';
+import { SCROLL_REVEAL_SCRIPT } from '../scripts/scroll-reveal';
 import SEO from '../components/SEO.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
+import ReadingProgress from '../components/ReadingProgress.astro';
+import BackToTop from '../components/BackToTop.astro';
 import '../styles/global.css';
 
 interface Props {
@@ -21,6 +24,11 @@ interface Props {
   updatedDate?: Date;
   tags?: string[];
   noindex?: boolean;
+  /**
+   * 是否显示阅读进度条。
+   * 只有长内容页（文章详情、关于页）才需要；列表页太短，加了是噪音。
+   */
+  progress?: boolean;
 }
 
 /*
@@ -38,6 +46,7 @@ const {
   updatedDate,
   tags,
   noindex,
+  progress = false,
 }: Props = Astro.props;
 ---
 
@@ -99,6 +108,12 @@ const {
     </main>
     <Footer />
 
+    {/* 阅读进度条：只在长内容页渲染 */}
+    {progress && <ReadingProgress />}
+
+    {/* 返回顶部：全站可用，滚动超过一屏后才淡入 */}
+    <BackToTop />
+
     {/*
       代码复制按钮。
       用 is:inline 而不是交给 Astro 打包，原因：这段脚本需要尽早执行并
@@ -106,6 +121,14 @@ const {
       体积很小（约 1.5KB），内联反而更快。
     */}
     <script is:inline set:html={COPY_BUTTON_SCRIPT} />
+
+    {/*
+      滚动显现。
+      也走 is:inline：它要在 DOMContentLoaded 前尽早注册，
+      否则首屏元素可能先以"未显现"状态闪一下。
+      脚本本身是渐进增强的，挂掉也不影响内容可读。
+    */}
+    <script is:inline set:html={SCROLL_REVEAL_SCRIPT} />
 
     {
       /*

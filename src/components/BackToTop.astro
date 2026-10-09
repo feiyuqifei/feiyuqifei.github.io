@@ -1,0 +1,65 @@
+---
+/**
+ * 返回顶部按钮。
+ *
+ * 滚动超过一屏后淡入，点击平滑回到顶部。
+ *
+ * 几个细节：
+ *   - 默认隐藏用 visibility + opacity，而不是 display:none。
+ *     后者不参与过渡，会出现"突然蹦出来"的效果。
+ *   - 尊重 prefers-reduced-motion：开了减少动效就瞬间跳转，不做平滑滚动。
+ *   - 用 <button> 而不是 <a href="#">，语义正确且不会污染 URL。
+ *   - 圆形按钮上有小箭头，复用站点的强调色。
+ */
+---
+
+<button class="to-top" type="button" data-to-top aria-label="返回顶部" title="返回顶部">
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M12 19V5"></path>
+    <path d="m5 12 7-7 7 7"></path>
+  </svg>
+</button>
+
+<script>
+  function initToTop(): void {
+    const btn = document.querySelector<HTMLButtonElement>('[data-to-top]');
+    if (!btn) return;
+
+    /** 显示阈值：滚过约一屏半才出现，太早出现会干扰阅读 */
+    const THRESHOLD = 600;
+
+    let ticking = false;
+    const update = (): void => {
+      ticking = false;
+      btn.classList.toggle('is-shown', window.scrollY > THRESHOLD);
+    };
+
+    const onScroll = (): void => {
+      if (ticking) return;
+      ticking = true;
+      window.requestAnimationFrame(update);
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    update();
+
+    btn.addEventListener('click', () => {
+      const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initToTop);
+  } else {
+    initToTop();
+  }
+</script>

@@ -23,7 +23,7 @@ if (!entry) {
 const { Content } = await render(entry);
 ---
 
-<Layout title="关于" description={entry.data.description ?? SITE.author.bio}>
+<Layout title="关于" description={entry.data.description ?? SITE.author.bio} progress>
   <article class="article">
     <header class="page-head">
       <nav class="breadcrumb" aria-label="面包屑">

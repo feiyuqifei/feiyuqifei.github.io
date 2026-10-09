@@ -17,6 +17,7 @@
     "test:effects": "node scripts/test-effects.mjs",
     "test:cursor": "node scripts/test-cursor-fx.mjs",
     "test:giscus": "node scripts/test-giscus.mjs",
+    "test:umami": "node scripts/test-umami.mjs",
     "check:md": "node scripts/check-markdown-render.mjs",
     "check:style": "node scripts/check-style.mjs",
     "check:mobile": "node scripts/check-mobile.mjs",

@@ -7,16 +7,27 @@ import { unified } from '@astrojs/markdown-remark';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 
+// 域名从 src/consts.ts 读取，全站只维护一处。
+// 以前这里和 consts.ts 各写一遍，改域名时容易漏掉一处 ——
+// 而漏改的表现是"页面能打开，但 canonical / RSS 指向旧域名"，
+// 非常隐蔽。
+import { SITE } from './src/consts.ts';
+
 /**
  * 飞鱼 · Astro 配置
  *
- * 部署目标：GitHub Pages 用户主页仓库（feiyuqifei.github.io）。
+ * ── 关于域名 ────────────────────────────────────────────────
+ *   站点地址由 SITE.url（src/consts.ts）决定，这里不再重复写。
+ *   换域名只需要改那一个地方。
  *
- * ── 关于 base（最容易踩的坑）────────────────────────────────
- *   仓库名恰好等于 `<用户名>.github.io` 时，站点挂在域名根部，
- *   访问地址是 https://feiyuqifei.github.io ，**不需要设置 base**。
- *   若以后改成别的仓库名（例如 blog），网站会变成
- *   https://feiyuqifei.github.io/blog/ ，那时必须补上 base: '/blog'，
+ * ── 关于 base ───────────────────────────────────────────────
+ *   只有当站点部署在**子路径**下才需要设置 base。
+ *
+ *   当前用自定义域名，站点在域名根部，所以不需要 base。
+ *   如果哪天退回 GitHub Pages 的 <用户名>.github.io 仓库，
+ *   同样在根部，也不需要 base。
+ *   但如果改用普通仓库名（例如 blog），地址会变成
+ *   https://<用户名>.github.io/blog/ ，那时必须补 base: '/blog'，
  *   否则所有 CSS、图片、内链都会 404。
  *
  * ── 关于 Markdown 处理器（Astro 7 的重要变化）──────────────
@@ -30,7 +41,7 @@ import rehypeKatex from 'rehype-katex';
  */
 export default defineConfig({
   /** 正式站点地址，用于生成 sitemap、canonical、RSS 的绝对链接 */
-  site: 'https://feiyuqifei.github.io',
+  site: SITE.url,
 
   /** 静态输出，GitHub Pages 只能托管静态文件 */
   output: 'static',

@@ -2,7 +2,17 @@
  * 飞鱼 · 站点全局配置
  * ------------------------------------------------------------------
  * 这个文件是整站的「控制台」。改这里就能改全站文案、导航、开关。
- * 部署上线地址：https://feiyuqifei.github.io
+ *
+ * ⚠️ 域名只在这个文件里写一次（SITE.url）。
+ *    astro.config.mjs 会从这里读取，不要在两处分别维护 ——
+ *    改漏一处会导致 canonical / RSS / sitemap 指向旧域名，
+ *    页面本身还能打开，所以很难发现。
+ *
+ * 换域名的完整步骤：
+ *   1. 改下面的 SITE.url
+ *   2. 在托管平台绑定新域名、在域名商配置 DNS
+ *   3. 重新构建部署
+ *   4. 验证：打开任意文章，看源码里的 canonical 是否已是新域名
  */
 
 export const SITE = {
@@ -14,9 +24,19 @@ export const SITE = {
   tagline: '潜得够深，才能跃出水面。',
   /** 站点描述，用于 SEO description 与 RSS */
   description:
-    '飞鱼的技术自留地 —— 记录 Web 安全与 CTF 实战、硬件与嵌入式折腾、以及那些真正好用的工具。',
-  /** 正式域名。改自定义域名时，这里和 astro.config.mjs 的 site 要一起改 */
-  url: 'https://feiyuqifei.github.io',
+    '飞鱼的技术自留地，记录 Web 安全与 CTF 实战、硬件与嵌入式折腾、以及那些真正好用的工具。',
+  /**
+   * 站点正式地址。**这是全站唯一的域名来源**。
+   *
+   * 当前是占位值，买好域名后替换成真实域名即可，例如：
+   *   url: 'https://feiyu.me',
+   * 必须以 https:// 开头，结尾不要带斜杠。
+   *
+   * 这个值会被用于：canonical 标签、og:url、结构化数据、
+   * RSS 里的文章链接、sitemap。改错或漏改会导致搜索引擎
+   * 和订阅者看到的是旧地址。
+   */
+  url: 'https://feiyu.example.com',
   /** 作者信息 */
   author: {
     name: '飞鱼',

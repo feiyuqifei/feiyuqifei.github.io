@@ -114,7 +114,6 @@ try {
 
   console.log('\n==== 发往 Umami 的请求 ====');
   const sends = umamiReqs.filter((r) => r.phase === 'request' && r.method === 'POST');
-  const script = umamiReqs.filter((r) => r.phase === 'request' && r.method === 'GET');
   if (umamiReqs.length === 0) {
     console.log('  （没有任何 umami 请求 —— 脚本可能被拦截或未执行）');
   }

@@ -1,0 +1,133 @@
+---
+/**
+ * 视频区。
+ *
+ * 数据全部来自 src/consts.ts 的 VIDEOS，页面本身不含内容 ——
+ * 以后加视频只改配置，不用碰这个文件。
+ *
+ * 分两部分渲染：
+ *   已发布（status: 'published'）—— 用 Video 组件真实播放
+ *   计划中（status: 'planned'）—— 只列标题和说明，不渲染播放器
+ *
+ * 为什么"计划中"也要显示：视频还没录的时候，一个空页面会让人以为链接坏了。
+ * 列出计划中的选题，读者知道这里以后会有什么，也方便自己安排录制顺序。
+ */
+import Layout from '../layouts/Layout.astro';
+import Video from '../components/Video.astro';
+import { SITE, VIDEOS, type VideoItem } from '../consts';
+import { withBase } from '../utils/url';
+import { formatDate } from '../utils/date';
+
+const all: VideoItem[] = VIDEOS;
+const published = all.filter((v) => v.status === 'published');
+const planned = all.filter((v) => v.status === 'planned');
+---
+
+<Layout
+  title="视频"
+  description={`${SITE.name}的视频区：录屏演示、操作实操与排障过程。`}
+>
+  <header class="page-head">
+    <nav class="breadcrumb" aria-label="面包屑">
+      <a href={withBase('/')}>首页</a>
+      <span> / </span>
+      <span>视频</span>
+    </nav>
+    <h1>视频</h1>
+    <p class="page-desc">
+      有些东西文字讲不清楚，比如抓包时怎么一眼看出问题、配交换机时哪个命令回显不对。
+      这类内容用录屏更直接，所以开了这个区。
+    </p>
+  </header>
+
+  {
+    /* ── 已发布 ── */
+    published.length > 0 ? (
+      <section aria-label="已发布的视频">
+        <div class="list-head">
+          <h2>已发布</h2>
+          <span class="count">{published.length} 个</span>
+        </div>
+
+        {published.map((v) => (
+          <article class="video-entry">
+            <Video
+              src={v.src}
+              embed={v.embed}
+              poster={v.poster}
+              title={v.title}
+              duration={v.duration}
+              caption={v.date ? `发布于 ${formatDate(new Date(v.date), 'long')}` : undefined}
+            />
+            <p class="video-desc">{v.desc}</p>
+            <div class="post-tags">
+              {v.tags.map((tag) => (
+                <a class="tag" href={withBase(`/tags/${tag}/`)}>#{tag}</a>
+              ))}
+            </div>
+          </article>
+        ))}
+      </section>
+    ) : (
+      <div class="empty-state">
+        <p class="empty-title">还没有已发布的视频</p>
+        <p>
+          第一个视频正在准备中。下面的选题是按"文字讲不清、录屏更省事"的标准挑的，
+          录好一个就会出现在这里。
+        </p>
+      </div>
+    )
+  }
+
+  {
+    /* ── 计划中 ── */
+    planned.length > 0 && (
+      <section aria-label="计划中的视频" style="margin-top:3rem">
+        <div class="list-head">
+          <h2>计划中</h2>
+          <span class="count">{planned.length} 个选题</span>
+        </div>
+        <ul class="plan-list">
+          {planned.map((v) => (
+            <li class="plan-item">
+              <div class="plan-head">
+                <span class="plan-badge">待录制</span>
+                <h3 class="plan-title">{v.title}</h3>
+              </div>
+              <p class="plan-desc">{v.desc}</p>
+              <div class="post-tags">
+                {v.tags.map((tag) => (
+                  <a class="tag" href={withBase(`/tags/${tag}/`)}>#{tag}</a>
+                ))}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )
+  }
+
+  <section style="margin-top:3rem" aria-label="说明">
+    <div class="list-head">
+      <h2>关于录制</h2>
+    </div>
+    <div class="prose" style="font-size:.95rem">
+      <p>
+        单个视频控制在 10 分钟以内，长了会拆成几集。
+        录屏用 1080p / 30fps，因为终端画面几乎不变，60fps 只会让文件大一倍。
+      </p>
+      <p>
+        音频比画质重要。教程视频让人看不下去的，通常是电流声和键盘声，
+        而不是分辨率不够。
+      </p>
+      <p>
+        每个视频都会配套一篇文章，视频里演示操作，文章里写清原理和命令。
+        习惯看文字的话，直接读文章更省时间。
+      </p>
+    </div>
+  </section>
+
+  <p style="margin-top:2.5rem">
+    <a href={withBase('/archive/')}>先看看已有的文章 →</a>
+  </p>
+</Layout>

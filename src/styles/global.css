@@ -1063,6 +1063,108 @@ main {
 }
 
 /* --------------------------------------------------------------------------
+   9.5 视频区
+   -------------------------------------------------------------------------- */
+
+/* 空状态：视频还没录时也要看起来是有意为之，而不是坏掉的页面 */
+.empty-state {
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-subtle);
+  padding: 1.75rem 1.5rem;
+  max-width: 60ch;
+
+  .empty-title {
+    font-weight: 700;
+    font-size: 1.02rem;
+    margin-bottom: 0.5rem;
+    color: var(--text);
+  }
+
+  p {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    line-height: 1.75;
+  }
+}
+
+.video-entry {
+  padding-block: 1.5rem;
+  border-bottom: 1px solid var(--border);
+
+  &:first-of-type {
+    padding-top: 0.5rem;
+  }
+
+  .video-desc {
+    margin-top: 0.2rem;
+    font-size: 0.92rem;
+    color: var(--text-muted);
+    line-height: 1.7;
+    max-width: var(--measure);
+  }
+}
+
+/* 计划中的选题列表 */
+.plan-list {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: var(--gap);
+
+  @media (min-width: 760px) {
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  }
+}
+
+.plan-item {
+  padding: 1.1rem 1.2rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+
+  &:hover {
+    border-color: var(--border-strong);
+  }
+}
+
+.plan-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.plan-badge {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+  border: 1px solid var(--border);
+  background: var(--bg-subtle);
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.plan-title {
+  font-size: 1rem;
+  font-weight: 650;
+  line-height: 1.5;
+}
+
+.plan-desc {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  line-height: 1.7;
+}
+
+.plan-item .post-tags {
+  margin-top: 0.7rem;
+}
+
+/* --------------------------------------------------------------------------
    10. 标签 / 归档页
    -------------------------------------------------------------------------- */
 .tag-cloud {

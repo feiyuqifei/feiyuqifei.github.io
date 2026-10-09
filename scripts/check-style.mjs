@@ -1,10 +1,15 @@
 /**
- * 文章风格自检：量化那些"读起来像 AI 写的"特征。
+ * 文章与页面文案的风格自检：量化那些"读起来像 AI 写的"特征。
  *
  * 为什么需要它：
  *   "AI 味"的感觉很主观，但它其实来自几个可量化的习惯：
  *   破折号密度、加粗密度、整齐的列表结构、固定的收尾套路等。
  *   先量出来，才知道该改哪里，改完也能验证有没有真的改善。
+ *
+ * 检查范围包含两类：
+ *   1. src/content/posts/*.md|mdx  —— 文章（去掉 frontmatter 与代码块）
+ *   2. src/pages/*.astro           —— 页面里用户可见的文案
+ *      （只统计作为文本出现的部分，代码注释里的破折号不算）
  *
  * 用法: node scripts/check-style.mjs
  */
@@ -14,7 +19,9 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const POSTS = resolve(HERE, '..', 'src', 'content', 'posts');
+const ROOT = resolve(HERE, '..');
+const POSTS = join(ROOT, 'src', 'content', 'posts');
+const PAGES = join(ROOT, 'src', 'pages');
 
 function walk(dir) {
   const out = [];
@@ -124,11 +131,46 @@ function analyze(text) {
   };
 }
 
+/**
+ * 从 .astro 页面里抽出用户可见的文案。
+ *
+ * 只取两处：
+ *   1. 标签之间的文本（>文字<）
+ *   2. 双引号属性值里的中文（title="..."、description="..."）
+ * 刻意**不统计** {/ * ... * /} 注释和 // 注释里的破折号 ——
+ * 代码注释不是给读者看的，算进来会误报。
+ */
+function astroVisibleText(src) {
+  // 去掉 JS/JSX 块注释与行注释
+  let t = src.replace(/\{\/\*[\s\S]*?\*\/\}/g, ' ');
+  t = t.replace(/\/\*[\s\S]*?\*\//g, ' ');
+  t = t.replace(/^\s*\/\/.*$/gm, ' ');
+  // 去掉 frontmatter（--- 之间）
+  t = t.replace(/^---[\s\S]*?---/, ' ');
+  // 只保留含中文的文本片段
+  const texts = [];
+  for (const m of t.matchAll(/>([^<>{}]+)</g)) {
+    if (/[\u4e00-\u9fff]/.test(m[1])) texts.push(m[1]);
+  }
+  for (const m of t.matchAll(/["']([^"']*[\u4e00-\u9fff][^"']*)["']/g)) {
+    texts.push(m[1]);
+  }
+  return texts.join('\n');
+}
+
 const files = walk(POSTS).filter((f) => !f.endsWith('about.md'));
 const rows = files.map((f) => ({
-  name: f.replace(POSTS + '\\', '').replace(/\\/g, '/').replace('.md', ''),
+  name: f.replace(POSTS + '\\', '').replace(/\\/g, '/').replace(/\.(md|mdx)$/, ''),
   ...analyze(readFileSync(f, 'utf8')),
 }));
+
+// 页面文案也一起检查 —— 之前只扫 posts/ 漏掉了 videos.astro 这类页面
+const pageFiles = readdirSync(PAGES).filter((f) => f.endsWith('.astro'));
+for (const f of pageFiles) {
+  const visible = astroVisibleText(readFileSync(join(PAGES, f), 'utf8'));
+  if (!visible.trim()) continue;
+  rows.push({ name: `(页面) ${f}`, ...analyze(visible) });
+}
 
 // 输出
 const pad = (s, n) => String(s).padEnd(n);

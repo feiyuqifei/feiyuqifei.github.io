@@ -59,10 +59,89 @@ export const NAV = [
   { text: '首页', href: '/' },
   { text: '技术文章', href: '/tech/' },
   { text: '工具分享', href: '/tools/' },
+  { text: '视频', href: '/videos/' },
   { text: '标签', href: '/tags/' },
   { text: '归档', href: '/archive/' },
   { text: '关于', href: '/about/' },
 ] as const;
+
+/**
+ * 视频条目。
+ *
+ * 为什么不用 `as const` 推导：那样数组元素的类型是一个联合类型，
+ * 访问可选字段时必须写 `'date' in v ? v.date : undefined` 这类守卫，
+ * 而 `in` 只收窄"属性存在"，不保证类型，`v.date` 依然是 unknown，
+ * 传给 new Date() 会报错。显式声明接口更省事也更清晰。
+ */
+export interface VideoItem {
+  /** published = 已发布（渲染播放器）；planned = 计划中（只列选题） */
+  status: 'published' | 'planned';
+  /** 视频标题 */
+  title: string;
+  /** 一句话说明 */
+  desc: string;
+  /** 标签，会链接到对应的标签页 */
+  tags: string[];
+  /**
+   * 播放器地址（B 站等平台）。
+   * 与 src 二选一，同时提供时优先用 embed。
+   */
+  embed?: string;
+  /** 视频直链（对象存储 / 自建）。与 embed 二选一 */
+  src?: string;
+  /** 封面图，放 public/videos/ 下 */
+  poster?: string;
+  /** 时长，例如 "12:34" */
+  duration?: string;
+  /** 发布日期，格式 YYYY-MM-DD。仅已发布的视频需要 */
+  date?: string;
+}
+
+/**
+ * 视频清单。这是视频区的唯一数据源，加视频只改这里。
+ *
+ * ⚠️ 用平台嵌入时记得关掉自动播放与弹幕，否则读者一进页面就被打扰。
+ */
+export const VIDEOS: VideoItem[] = [
+  // ── 已发布的视频追加到这里 ──
+  // 示例（取消注释并替换成真实数据）：
+  // {
+  //   status: 'published',
+  //   title: '用 Wireshark 定位一次丢包问题',
+  //   desc: '从两端同时抓包开始，逐步锁定是哪一跳开始丢的。',
+  //   embed: 'https://player.bilibili.com/player.html?bvid=BVxxxxxxxxxx&autoplay=0&danmaku=0',
+  //   poster: '/videos/wireshark-cover.jpg',
+  //   duration: '12:34',
+  //   date: '2026-05-01',
+  //   tags: ['网络工程', 'Wireshark'],
+  // },
+
+  // ── 计划中的选题 ──
+  {
+    status: 'planned',
+    title: '用 Wireshark 定位一次丢包问题',
+    desc: '两端同时抓包，逐步锁定是哪一跳开始丢的。配套文章《抓包分析：从看懂到定位》，可以对着一起看。',
+    tags: ['网络工程', 'Wireshark'],
+  },
+  {
+    status: 'planned',
+    title: 'VLAN 配置实操：从零配到能通',
+    desc: '现场敲一遍 Access、Trunk、Native VLAN，包括几个「配了不通」的典型错误是怎么造成的。',
+    tags: ['网络工程', 'VLAN'],
+  },
+  {
+    status: 'planned',
+    title: '子网划分手算演示',
+    desc: '不讲速记口诀，从头把一个地址规划需求算完，中间故意踩一次坑再纠正。',
+    tags: ['网络工程', 'IP'],
+  },
+  {
+    status: 'planned',
+    title: 'I2C 传感器读不出数据怎么查',
+    desc: '用逻辑分析仪看波形，从 NAK 一路定位到地址左移的问题。配套文章《串口调试从入门到不抓狂》。',
+    tags: ['嵌入式', 'I2C', '硬件'],
+  },
+];
 
 /** 页脚社交链接 —— 把 href 换成你自己的，留空字符串则不显示该图标 */
 export const SOCIALS = [

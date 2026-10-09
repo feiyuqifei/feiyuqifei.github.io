@@ -77,6 +77,7 @@ Burp 默认用自签名 CA。如果你测 HTTPS 站点，必须把 `cacert.der`
 | subfinder | [github.com/projectdiscovery/subfinder/releases](https://github.com/projectdiscovery/subfinder/releases) | 单文件 exe，子域收集 |
 | katana | [github.com/projectdiscovery/katana/releases](https://github.com/projectdiscovery/katana/releases) | 爬虫，抓到的 URL 喂给 ffuf / nuclei |
 | Arjun | [github.com/s0md3v/Arjun](https://github.com/s0md3v/Arjun) | 隐藏 GET/POST 参数发现 |
+| Kiterunner | [github.com/assetnote/kiterunner](https://github.com/assetnote/kiterunner) | API 路径爆破。**注意：2021 年后基本停更**，字典和规则需要自己维护 |
 
 ### 字典才是决定成败的关键
 
@@ -159,10 +160,16 @@ sqlmap -r request.txt -D appdb --tables
 | WhatWeb | [github.com/urbanadventurer/WhatWeb](https://github.com/urbanadventurer/WhatWeb) | CMS / 框架 / 中间件指纹（需 Ruby） |
 | wafw00f | [github.com/EnableSecurity/wafw00f](https://github.com/EnableSecurity/wafw00f) | WAF 识别，先判断有没有 WAF 再决定打法 |
 | httpx | 见上 | `-tech-detect` 批量指纹 |
+| TideFinger | [github.com/TideSec/TideFinger](https://github.com/TideSec/TideFinger) | 国产指纹识别，**中文系统的识别率比 WhatWeb 高** |
+| EHole | [github.com/EdgeSecurityTeam/EHole](https://github.com/EdgeSecurityTeam/EHole) | 同上，偏重资产测绘场景 |
 
 **为什么指纹识别值得单独一步**：技术栈直接决定你该往哪个方向找漏洞。
 看到 ThinkPHP 就该试那几个经典 RCE，看到 Spring 就该先看 actuator 端点。
 不做指纹就瞎打，效率会低一个数量级。
+
+**国产系统一定要用国产指纹工具。** WhatWeb 的规则库对国内常见的
+OA、CMS、中间件覆盖不全，扫一个国产 OA 可能只报出 "nginx"。
+TideFinger 和 EHole 在这类目标上明显更准，这是实测出来的差别，不是偏好问题。
 
 ## 5. 推荐起步组合
 

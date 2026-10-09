@@ -76,22 +76,31 @@ try {
     width: 1280, height: 900, deviceScaleFactor: 1, mobile: false,
   });
 
-  /* 滚到底部触发 lazy 加载，等 iframe 有高度 */
+  /* 滚到底部触发 lazy 加载。
+     Giscus 是两层网络请求（client.js → widget），实测总耗时
+     9~16 秒（取决于到 giscus.app 的网络状况），所以必须轮询，
+     不能用固定等待 —— 等 1.5 秒截出来的必然是空白框。 */
   await sleep(3000);
   await cdp.evaluate(`window.scrollTo(0, document.body.scrollHeight)`);
 
-  /* 等 iframe 真正渲染出内容。Giscus 是两层网络请求
-     （先 client.js，再 widget 页面），只等 1.5s 往往还没画出来 */
   let frameH = 0;
-  for (let i = 0; i < 24; i++) {
-    frameH = await cdp.evaluate(`(() => {
+  let accessible = true;
+  for (let i = 0; i < 120; i++) {
+    const st = await cdp.evaluate(`(() => {
       const f = document.querySelector('iframe.giscus-frame');
-      return f ? Math.round(f.getBoundingClientRect().height) : 0;
+      if (!f) return { h: 0, accessible: true };
+      let acc = false;
+      try { acc = f.contentDocument !== null; } catch (e) { acc = false; }
+      return { h: Math.round(f.getBoundingClientRect().height), accessible: acc };
     })()`);
-    if (frameH > 120) break;
+    frameH = st.h;
+    accessible = st.accessible;
+    /* 跨域内容一旦加载成功，contentDocument 变为不可访问 */
+    if (!accessible && frameH > 100) break;
     await sleep(500);
   }
-  await sleep(2500); /* 再多给一点时间让 iframe 内部完成绘制 */
+  /* 再多给一点时间让 iframe 内部完成绘制 */
+  await sleep(3000);
 
   /*
    * 滚动定位：把整个 .comments 区域放进视口。

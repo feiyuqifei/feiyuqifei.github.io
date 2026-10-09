@@ -110,7 +110,37 @@ async function main() {
     /* 滚到底部，触发 data-loading="lazy" 的 Giscus 加载 */
     await sleep(3000);
     await cdp.evaluate(`window.scrollTo(0, document.body.scrollHeight)`);
-    await sleep(4000);
+
+    /*
+     * 等 Giscus 真正渲染。
+     *
+     * ⚠️ 这里必须轮询，不能用固定等待时间。
+     * 实测线上时间线：client.js 响应耗时约 7 秒、widget 响应再约 7 秒，
+     * 约 16 秒才开始画内容，26 秒才展开到完整高度（372px）。
+     * 之前用固定 6 秒等待，测的全是加载完成之前的状态，
+     * 因而把"加载慢"误判成了"加载失败"。这个教训值得留在代码里。
+     *
+     * 判据用 contentDocument 是否可访问：
+     *   跨域内容加载成功后为 null；若可访问且为空，说明还停在 about:blank。
+     */
+    const loadStart = Date.now();
+    let loaded = false;
+    for (let i = 0; i < 120; i++) {
+      const st = await cdp.evaluate(`(() => {
+        const f = document.querySelector('iframe.giscus-frame');
+        if (!f) return { state: 'no-iframe' };
+        let accessible = false;
+        try { accessible = f.contentDocument !== null; } catch (e) { accessible = false; }
+        return {
+          state: accessible ? 'blank' : 'loaded',
+          h: Math.round(f.getBoundingClientRect().height),
+        };
+      })()`);
+      if (st.state === 'loaded' && st.h > 100) { loaded = true; break; }
+      await sleep(500);
+    }
+    const waited = ((Date.now() - loadStart) / 1000).toFixed(1);
+    console.log(`   等待 Giscus 渲染: ${waited}s  ${loaded ? '(已加载)' : '(超时未加载)'}\n`);
 
     console.log('【1】评论容器与脚本');
     const dom = await cdp.evaluate(`(() => {
@@ -135,18 +165,21 @@ async function main() {
     check('repoId 已填入', !!dom.dataRepoId && dom.dataRepoId.startsWith('R_'), dom.dataRepoId ?? '(空)');
     check('categoryId 已填入', !!dom.dataCategoryId && dom.dataCategoryId.startsWith('DIC_'), dom.dataCategoryId ?? '(空)');
 
-    console.log('\n【2】iframe 是否真的被创建（关键）');
+    console.log('\n【2】iframe 是否真的加载了内容（关键）');
     check('Giscus iframe 已创建', dom.iframeCount > 0, `${dom.iframeCount} 个`);
+    check('iframe 内部为跨域文档（内容已加载）', loaded === true, `等待 ${waited}s`);
 
     if (dom.iframeCount > 0) {
       const frame = await cdp.evaluate(`(() => {
         const f = document.querySelector('iframe.giscus-frame');
         const r = f.getBoundingClientRect();
-        return { src: f.src, w: Math.round(r.width), h: Math.round(r.height), visible: r.height > 50 };
+        let accessible = false;
+        try { accessible = f.contentDocument !== null; } catch (e) { accessible = false; }
+        return { src: f.src, w: Math.round(r.width), h: Math.round(r.height), accessible };
       })()`);
       console.log('    ', JSON.stringify(frame));
       check('iframe 指向 giscus.app', frame.src.startsWith('https://giscus.app/'), frame.src.slice(0, 60) + '…');
-      check('iframe 有实际高度（说明内容加载了）', frame.visible === true, `${frame.h}px 高`);
+      check('iframe 高度已展开（说明内容渲染完成）', frame.h > 100, `${frame.h}px 高`);
     }
 
     console.log('\n【3】网络与控制台');

@@ -97,7 +97,20 @@ async function main() {
     await cdp.send('Emulation.setDeviceMetricsOverride', {
       width: 1280, height: 900, deviceScaleFactor: 1, mobile: false,
     });
-    await sleep(4000);
+    /*
+     * 等页面稳定。不能死等固定时间：线上首屏比本地慢，
+     * 固定 4 秒曾在线上出现"水印元素还没渲染出来"的假失败。
+     * 改为轮询等待关键元素出现。
+     */
+    let appeared = false;
+    for (let i = 0; i < 60; i++) {
+      appeared = await cdp.evaluate(`!!document.querySelector('.site-watermark')`);
+      if (appeared) break;
+      await sleep(500);
+    }
+    /* 再给一点时间让样式与统计脚本就位 */
+    await sleep(1500);
+    if (!appeared) console.log('    （注意：等待 30 秒仍未出现水印元素）\n');
 
     console.log('【1】水印层');
     const wm = await cdp.evaluate(`(() => {

@@ -179,6 +179,35 @@ const sections = groupKeys
                       )}
 
                       {c.desc && <p class="comp-desc">{c.desc}</p>}
+
+                      {/* 参考题解：自己的排在前面，别人的标注作者 */}
+                      {c.writeups && c.writeups.length > 0 && (
+                        <div class="comp-writeups">
+                          <span class="comp-writeups-label">参考题解</span>
+                          <ul class="comp-writeups-list">
+                            {[...c.writeups]
+                              .sort((a, b) => (a.kind === b.kind ? 0 : a.kind === 'local' ? -1 : 1))
+                              .map((w) => (
+                                <li>
+                                  <a
+                                    class={`comp-writeup is-${w.kind}`}
+                                    href={w.kind === 'local' ? withBase(w.url) : w.url}
+                                    {...(w.kind === 'external'
+                                      ? { target: '_blank', rel: 'noopener noreferrer' }
+                                      : {})}
+                                  >
+                                    <span class="comp-writeup-title">{w.title}</span>
+                                    {w.author && <span class="comp-writeup-author">@{w.author}</span>}
+                                    {w.note && <span class="comp-writeup-note">{w.note}</span>}
+                                    <span class="comp-writeup-arrow" aria-hidden="true">
+                                      {w.kind === 'local' ? '→' : '↗'}
+                                    </span>
+                                  </a>
+                                </li>
+                              ))}
+                          </ul>
+                        </div>
+                      )}
                     </div>
 
                     {c.url && (

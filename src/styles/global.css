@@ -1987,6 +1987,95 @@ main {
   line-height: 1.7;
 }
 
+/* ── 参考题解 ──
+   视觉上刻意比正文轻：它是延伸阅读入口，不是主信息。
+   但仍要一眼能区分「自己写的」与「别人的」—— 前者用强调色实线，
+   后者用中性色虚线，避免读者误以为都是本站内容。 */
+.comp-writeups {
+  margin-top: 0.85rem;
+  padding-top: 0.7rem;
+  border-top: 1px dashed var(--border);
+}
+
+.comp-writeups-label {
+  display: inline-block;
+  margin-bottom: 0.4rem;
+  font-size: 0.75rem;
+  color: var(--text-faint);
+  letter-spacing: 0.04em;
+}
+
+.comp-writeups-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.comp-writeup {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem;
+  padding: 0.28rem 0.55rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.84rem;
+  line-height: 1.5;
+  max-width: 100%;
+
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+
+  /* 自己写的：强调色，实线感 */
+  &.is-local {
+    color: var(--accent);
+    border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+
+    &:hover {
+      background: var(--accent-soft);
+    }
+  }
+
+  /* 别人的：中性色 + 虚线，明确区分来源 */
+  &.is-external {
+    color: var(--text-muted);
+    border: 1px dashed var(--border);
+
+    &:hover {
+      color: var(--text);
+      background: color-mix(in srgb, var(--border) 40%, transparent);
+    }
+  }
+}
+
+.comp-writeup-title {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.comp-writeup-author {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-faint);
+}
+
+.comp-writeup-note {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  color: var(--text-faint);
+  opacity: 0.85;
+}
+
+.comp-writeup-arrow {
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  opacity: 0.6;
+}
+
 .comp-link {
   flex-shrink: 0;
   align-self: flex-start;

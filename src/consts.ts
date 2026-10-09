@@ -232,6 +232,32 @@ export interface CompetitionItem {
   eligibility?: string;
   /** 官网或报名入口 */
   url?: string;
+  /**
+   * 参考 writeup（题解）。
+   *
+   * 设计成数组而不是单个链接，因为一个赛事往往有多届、多篇题解。
+   * 同时支持两种来源：
+   *   external —— 别人的题解，会标注作者并加外链图标
+   *   local    —— 自己写的，走站内链接（本地优先显示在前面）
+   *
+   * 这样以后自己在博客里写了题解，只要把 url 改成站内路径、
+   * 把 kind 改成 'local' 即可，不必改页面结构。
+   */
+  writeups?: CompetitionWriteup[];
+}
+
+/** 参考题解条目 */
+export interface CompetitionWriteup {
+  /** 题解标题，例如「2026 楚慧杯 Misc Writeup」 */
+  title: string;
+  /** 链接。外链填完整 URL，站内填 /posts/xxx/ 这类路径 */
+  url: string;
+  /** external = 他人题解；local = 自己写的 */
+  kind: 'external' | 'local';
+  /** 作者，仅外链需要 */
+  author?: string;
+  /** 备注，例如「杂项方向」 */
+  note?: string;
 }
 
 /**
@@ -286,6 +312,15 @@ export const COMPETITIONS: CompetitionItem[] = [
       '全日制在校学生（含高职高专、本科生、硕士研究生）；每队 ≤4 人，可校内跨年级跨专业，不可跨校；不收报名费',
     desc: 'CISCN 的实战赛道。每家高校最多 2 支队伍晋级分区半决赛（半决赛承办校多 1 个名额），各赛区取不超过 100 支队伍；分区赛前 5 名直接晋级总决赛，总决赛名额约 80 个。半决赛参赛者获 NISP 一级证书，总决赛一等奖获 CISP-PTE 证书。',
     url: 'http://www.ciscn.cn/index.php/competition/securityCompetition?compet_id=44',
+    writeups: [
+      {
+        title: '2024 全国大学生信息安全竞赛初赛 Misc Writeup',
+        url: 'https://goodlunatic.github.io/posts/1b1f96e/',
+        kind: 'external',
+        author: 'Lunatic',
+        note: '杂项方向',
+      },
+    ],
   },
   {
     name: '长城杯 网数智安全大赛·防护赛',
@@ -371,6 +406,29 @@ export const COMPETITIONS: CompetitionItem[] = [
       '国内高校、企业、机构等网络安全力量；须中国国籍（不含港澳台）；线上赛每队 ≤10 人，线下赛每队 ≤4 人',
     desc: '国家级网络安全赛事，含线上赛、线下赛、行业领域专项赛（漏洞智能分析、天基互联网安全、车联网安全）与创新创业专项赛。线下赛取线上排名前 32 支队伍。',
     url: 'https://www.qiangwangbei.com',
+    writeups: [
+      {
+        title: '2023 强网杯全国网络安全挑战赛 Misc Writeup',
+        url: 'https://goodlunatic.github.io/posts/5f3fb7a/',
+        kind: 'external',
+        author: 'Lunatic',
+        note: '杂项方向',
+      },
+      {
+        title: '2025 强网拟态防御国际精英挑战赛线下总决赛 Misc Writeup',
+        url: 'https://goodlunatic.github.io/posts/353513a/',
+        kind: 'external',
+        author: 'Lunatic',
+        note: '强网品牌下的另一项赛事',
+      },
+      {
+        title: '2024 强网拟态防御国际精英挑战赛初赛 Misc Writeup',
+        url: 'https://goodlunatic.github.io/posts/de8e2be/',
+        kind: 'external',
+        author: 'Lunatic',
+        note: '强网品牌下的另一项赛事',
+      },
+    ],
   },
   {
     name: '羊城杯 网络安全大赛',
@@ -389,6 +447,22 @@ export const COMPETITIONS: CompetitionItem[] = [
       '面向全国。设本科院校组、高职高专组、党政机关及事业单位组、企业组',
     desc: '自 2020 年已连续举办五届，累计 6300 多支队伍、1.3 万余人参赛。初赛为在线 CTF，涵盖 Web 安全、逆向、移动安全、二进制漏洞挖掘、密码学、取证分析、隐写分析。本科组前 24 名、其余各组前 12 名进决赛。',
     url: 'https://ycb.dasctf.com',
+    writeups: [
+      {
+        title: '2024 羊城杯网络安全大赛 Misc Writeup',
+        url: 'https://goodlunatic.github.io/posts/4a27616/',
+        kind: 'external',
+        author: 'Lunatic',
+        note: '杂项方向',
+      },
+      {
+        title: '2023 羊城杯网络安全大赛 Misc Writeup',
+        url: 'https://goodlunatic.github.io/posts/940b876/',
+        kind: 'external',
+        author: 'Lunatic',
+        note: '杂项方向',
+      },
+    ],
   },
   {
     name: '楚慧杯 网络与数据安全实践能力竞赛',
@@ -409,6 +483,29 @@ export const COMPETITIONS: CompetitionItem[] = [
       '面向中华人民共和国境内合法组织与公民。分 W 组（机关企事业单位）、L 组（院校学生，含中等/高等/职业院校）、A 组（安全专业机构）、Q 组（技术爱好者，无挂靠单位可自由组队）',
     desc: '已办至第十届。聚焦人工智能、物联网、车联网、云计算、大数据，设夺旗赛、综合防御赛、靶场渗透赛。资格赛约前 55 支队伍晋级。Q 组对学生最友好 —— 不需要学校推荐即可报名。',
     url: 'http://www.whwx.gov.cn/',
+    writeups: [
+      {
+        title: '2026 楚慧杯湖北省网络与数据安全实践能力竞赛 Misc Writeup',
+        url: 'https://goodlunatic.github.io/posts/59dcb62/',
+        kind: 'external',
+        author: 'Lunatic',
+        note: '杂项方向',
+      },
+      {
+        title: '2024 楚慧杯网络与数据安全实践能力竞赛 Misc Writeup',
+        url: 'https://goodlunatic.github.io/posts/69e332a/',
+        kind: 'external',
+        author: 'Lunatic',
+        note: '杂项方向',
+      },
+      {
+        title: '2023 楚慧杯网络空间安全实践能力竞赛 Misc Writeup',
+        url: 'https://goodlunatic.github.io/posts/fde34a9/',
+        kind: 'external',
+        author: 'Lunatic',
+        note: '杂项方向',
+      },
+    ],
   },
   {
     name: 'HKCERT CTF 香港网安夺旗赛',
@@ -444,6 +541,15 @@ export const COMPETITIONS: CompetitionItem[] = [
       '面向重要行业部门、科研机构、高等院校、网络安全企业、互联网企业和网络安全从业人员；每队 1—4 人（可另设 1 名领队），可以个人名义参赛。经高校通道报名者一般限在校本科生、研究生',
     desc: '预计 600 支队伍晋级半决赛、60 支晋级总决赛。赛题覆盖人工智能、车联网、物联网、5G，设夺旗赛、综合防御赛、靶场渗透赛三类。以行业分组对抗著称。',
     url: 'https://www.wangdingcup.com/',
+    writeups: [
+      {
+        title: '2024 网鼎杯网络安全大赛青龙组 Misc Writeup',
+        url: 'https://goodlunatic.github.io/posts/1a285be/',
+        kind: 'external',
+        author: 'Lunatic',
+        note: '青龙组 · 杂项方向',
+      },
+    ],
   },
   {
     name: '古剑山 全国大学生网络攻防大赛',
@@ -461,6 +567,22 @@ export const COMPETITIONS: CompetitionItem[] = [
       '面向全国高校信息安全、计算机、大数据等相关专业在校生，也欢迎其他专业对网络安全感兴趣的在校大学生；每队 3 人，须来自同一单位，每人限报一队',
     desc: '2023 年创办，规模逐年扩大：首届 740 支战队，第二届 1164 支，第三届 1191 支。参赛高校涵盖清华、复旦、国防科技大学、北邮等。省赛各省单独排名，全国综合前 20 名晋级决赛。团体奖总奖金 40 万元。',
     url: 'https://www.datacon.org.cn/gujianshan2025',
+    writeups: [
+      {
+        title: '2025 古剑山全国大学生网络攻防大赛 Misc Writeup',
+        url: 'https://goodlunatic.github.io/posts/380aa02/',
+        kind: 'external',
+        author: 'Lunatic',
+        note: '杂项方向',
+      },
+      {
+        title: '2024 古剑山全国大学生网络攻防大赛 Misc Writeup',
+        url: 'https://goodlunatic.github.io/posts/1618f6c/',
+        kind: 'external',
+        author: 'Lunatic',
+        note: '杂项方向',
+      },
+    ],
   },
   {
     name: '蓝桥杯·网络安全赛项',
@@ -508,6 +630,36 @@ export const COMPETITIONS: CompetitionItem[] = [
     location: '福建（数字中国建设峰会）',
     organizer: '数字中国建设峰会组委会',
     desc: '数字中国建设峰会配套赛事，含网络和数据安全产业赛、红明谷杯等子赛事。政府背景，认可度较高。⚠️ 报名月份与参赛资格未查证。',
+    writeups: [
+      {
+        title: '2023&2024 红明谷初赛 Misc Writeup',
+        url: 'https://goodlunatic.github.io/posts/e49ecc5/',
+        kind: 'external',
+        author: 'Lunatic',
+        note: '红明谷杯 · 杂项方向',
+      },
+    ],
+  },
+  {
+    name: '长城杯 信息安全铁人三项赛',
+    group: 'infosec',
+    status: 'recurring',
+    registerAt: '待确认',
+    when: '待确认',
+    location: '待确认',
+    organizer: '中国信息安全测评中心',
+    desc: '「长城杯」品牌下的独立赛事，与网数智安全大赛（防护赛/作品赛）、京津冀蒙网络安全技能竞赛是不同比赛。⚠️ 官网（ccb.itsec.gov.cn）为 JS 应用，未能抓取，报名时间与参赛资格均未查证。',
+    eligibility: '待确认',
+    url: 'http://ccb.itsec.gov.cn/',
+    writeups: [
+      {
+        title: '2024 长城杯信息安全铁人三项赛 Misc Writeup',
+        url: 'https://goodlunatic.github.io/posts/bd957c3/',
+        kind: 'external',
+        author: 'Lunatic',
+        note: '杂项方向',
+      },
+    ],
   },
   {
     name: '数信杯 数据安全大赛',

@@ -176,19 +176,34 @@ export const SOCIALS = [
  */
 
 /**
- * Giscus 评论（基于 GitHub Discussions，无后端）
- * 开启步骤：
- *   1. 确认仓库 feiyuqifei.github.io 是 public
- *   2. 仓库 Settings → General → Features → 勾选 Discussions
- *   3. 安装 Giscus App：https://github.com/apps/giscus
- *   4. 打开 https://giscus.app ，填入仓库名，复制下面 4 个值
+ * Giscus 评论（基于 GitHub Discussions，无后端、无数据库）
+ *
+ * 已开启。三个前提条件都已满足：
+ *   1. 仓库 feiyuqifei.github.io 是 public ✓
+ *   2. 仓库设置 → 通用 → 功能 → 勾选「讨论」✓
+ *   3. 已安装并授权 Giscus App ✓
+ *
+ * repoId / categoryId 的来源：
+ *   repoId      = 仓库的 node_id（GET /repos/{owner}/{repo} 返回的 node_id）
+ *   categoryId  = Discussion 分类的 node id，从 https://giscus.app/zh-CN 生成
+ *                 的 <script> 片段里复制（data-category-id 属性）
+ *   两者都是 GitHub 的全局唯一 ID（不是名字），仓库改名也不会失效。
+ *
+ * ⚠️ 换仓库或换分类时，这两个 ID 必须重新获取 —— 它们与名字无关，
+ *    改名字段没用，会导致评论框空白且不报错。
+ *
+ * 关于 category：Announcements 是 Giscus 的惯例选择。
+ *   GitHub Discussions 的默认分类名始终显示英文（General / Announcements /
+ *   Ideas / Polls / Q&A / Show and tell），即使界面是中文也一样，这是正常的。
+ *   若想换成别的分类，需要在 GitHub 侧先建好，再重新取 categoryId。
  */
 export const GISCUS = {
-  enabled: false,
+  enabled: true,
   repo: 'feiyuqifei/feiyuqifei.github.io',
-  repoId: '',
+  repoId: 'R_kgDOVBOcQw',
   category: 'Announcements',
-  categoryId: '',
+  categoryId: 'DIC_kwDOVBOcQ84DHY3i',
+  /** 用页面路径映射 Discussion，保证每篇文章有独立的评论区 */
   mapping: 'pathname',
   lang: 'zh-CN',
 } as const;

@@ -203,8 +203,32 @@ export const GISCUS = {
   repoId: 'R_kgDOVBOcQw',
   category: 'Announcements',
   categoryId: 'DIC_kwDOVBOcQ84DHY3i',
-  /** 用页面路径映射 Discussion，保证每篇文章有独立的评论区 */
-  mapping: 'pathname',
+  /**
+   * 映射方式：用页面的 og:title 匹配 Discussion。
+   *
+   * 选用 og:title 而不是 pathname 的原因：
+   *   pathname 会生成 tools/web-security-toolkit/ 这种标题，
+   *   在 GitHub Discussions 列表里既不可读、也无法一眼看出是哪篇文章。
+   *   og:title 是「文章标题 | 飞鱼」，检索和管理都直观得多。
+   *
+   * 注意 og:title 由 SEO.astro 生成，值等于 <title>，
+   * 所以改站点名会改变这个值 —— 届时旧 Discussion 会变成孤儿。
+   */
+  mapping: 'og:title',
+  /**
+   * 严格标题匹配，必须与 mapping: 'og:title' 搭配使用。
+   *
+   * GitHub 搜索用的是模糊匹配，标题相近时可能返回错误的 discussion
+   * （比如两篇文章标题都含"网络排障"）。开启 strict 后，
+   * Giscus 改为计算标题的 SHA-1 哈希、并在 discussion 正文里搜索该哈希，
+   * 从而做到精确匹配。
+   *
+   * ⚠️ 代价：正文里没有该哈希的旧 discussion 将无法被匹配到。
+   *    Giscus 新建的 discussion 会自动带上哈希；在此开关之前手工建的
+   *    需要在正文里补一行 <!-- sha1: <标题的SHA1> -->。
+   *    详见 https://github.com/giscus/giscus/blob/main/ADVANCED-USAGE.md#data-strict
+   */
+  strict: true,
   lang: 'zh-CN',
 } as const;
 

@@ -226,6 +226,16 @@
 .hero {
   position: relative;
   isolation: isolate;
+  /*
+   * 必须裁剪横向溢出。
+   * ::before 的光晕用了负的左右偏移（向外扩 1.5rem）来让渐变不显得生硬，
+   * 在桌面宽屏上无所谓，但在 393px 的手机上会把文档撑宽 4px，
+   * 整页出现左右晃动。这是实测出来的（隐藏 .hero 后溢出立即归零）。
+   *
+   * 用 clip 而不是 hidden：hidden 会创建滚动容器，
+   * 影响页内锚点跳转与 sticky 定位；clip 不创建滚动容器。
+   */
+  overflow-x: clip;
 }
 
 .hero::before {
@@ -265,6 +275,8 @@
 .article-header {
   position: relative;
   isolation: isolate;
+  /* 同上：光晕的负偏移不能在窄屏上撑宽文档 */
+  overflow-x: clip;
 }
 
 .article-header::before {
@@ -567,6 +579,46 @@ code {
   display: flex;
   align-items: center;
   gap: 1.5rem;
+}
+
+/* 顶栏自身也不允许出现横向溢出的滚动条 */
+.site-header {
+  overflow-x: clip;
+}
+
+/* --------------------------------------------------------------------------
+   4.6 触摸目标尺寸
+   --------------------------------------------------------------------------
+   桌面端靠精确指针，26px 高的标签点起来没问题；
+   手指的接触面积大得多，太小的目标容易点错相邻元素。
+   触屏设备上把可点元素放大到 32px 以上。
+
+   用 (hover: none) 而不是屏幕宽度判断 —— 触屏笔记本、平板外接鼠标
+   这些情况靠宽度判断会误伤。
+   -------------------------------------------------------------------------- */
+@media (hover: none) {
+  .tag {
+    padding: 0.32rem 0.62rem;
+    font-size: 0.78rem;
+    /* 保证纵向可点区域 */
+    min-height: 32px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .copy-btn {
+    /* 桌面上悬停才出现，触屏没有悬停，已经在别处强制常显，这里补足尺寸 */
+    min-height: 32px;
+    padding: 0.35rem 0.7rem;
+    font-size: 0.74rem;
+  }
+
+  .nav a {
+    /* 顶栏导航项也补足到 40px，符合移动端推荐 */
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+  }
 }
 
 .brand {
@@ -1678,16 +1730,19 @@ main {
     border-radius: 4px;
     padding: 0.05rem 0.3rem;
     color: var(--text-faint);
-
-    @media (max-width: 720px) {
-      display: none;
-    }
   }
 
+  /*
+   * 注意：不要在这里嵌套 @media。
+   * @media 只能出现在顶层或嵌套规则内部，
+   * 但它不能作为"普通选择器的子节点"存在 ——
+   * 写成 .search-trigger-text { @media (...) { ... } } 会让
+   * LightningCSS 产出一个缺选择器的畸形规则，
+   * 并把后面所有样式带偏（实测导致手机端媒体查询整段失效）。
+   * 手机端的隐藏规则统一写在文件末尾的 15 节里。
+   */
   .search-trigger-text {
-    @media (max-width: 720px) {
-      display: none;
-    }
+    white-space: nowrap;
   }
 }
 
@@ -1711,5 +1766,103 @@ main {
 
   .prose {
     max-width: none;
+  }
+}
+
+/* ==========================================================================
+   15. 手机端覆盖（必须放在文件最后）
+   ==========================================================================
+   为什么单独放最后：同优先级的选择器，后定义的胜出。
+   .search-trigger / .theme-toggle / .nav a 的基础样式定义在文件中部，
+   如果媒体查询写在它们前面，会被覆盖掉、完全不生效。
+   —— 这个坑我实际踩过：加了媒体查询但 Ctrl K 提示依然显示。
+
+   实测背景：393px 视口下，顶栏四样东西（品牌 + 导航 + 搜索 + 主题切换）
+   总宽超出，导航整条被推出屏幕，用户根本点不到导航。
+   ========================================================================== */
+
+@media (max-width: 720px) {
+  .site-header .wrap {
+    gap: 0.6rem;
+  }
+
+  .brand {
+    gap: 0.4rem;
+  }
+
+  /* FEIYU 副标在窄屏上没有信息价值，让位给导航 */
+  .brand-en {
+    display: none;
+  }
+
+  /* 关键：flex 子项默认 min-width:auto 不肯收缩。
+     不加这一条，导航会把整个容器撑宽，页面出现横向晃动。 */
+  .nav {
+    min-width: 0;
+    gap: 0;
+  }
+
+  .nav a {
+    padding: 0.4rem 0.5rem;
+    font-size: 0.88rem;
+  }
+
+  .search-trigger {
+    padding-inline: 0.55rem;
+  }
+
+  /* Ctrl K 是键盘快捷键，手机上根本没有键盘；文字去掉只留放大镜图标 */
+  .search-trigger kbd,
+  .search-trigger .search-trigger-text {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .site-header .wrap {
+    gap: 0.45rem;
+  }
+
+  .nav a {
+    padding: 0.4rem 0.42rem;
+    font-size: 0.845rem;
+  }
+
+  .search-trigger {
+    padding-inline: 0.5rem;
+  }
+
+  .theme-toggle {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   15.1 触摸目标尺寸
+   --------------------------------------------------------------------------
+   桌面端靠精确指针，26px 高的标签点起来没问题；
+   手指接触面积大得多，太小的目标容易点错相邻元素。
+   用 (hover: none) 判断而不是屏幕宽度 —— 触屏笔记本、平板接鼠标
+   这些情况靠宽度判断会误伤。
+   -------------------------------------------------------------------------- */
+@media (hover: none) {
+  .tag {
+    padding: 0.32rem 0.62rem;
+    min-height: 32px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .copy-btn {
+    min-height: 32px;
+    padding: 0.35rem 0.7rem;
+    font-size: 0.74rem;
+  }
+
+  .nav a {
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
   }
 }

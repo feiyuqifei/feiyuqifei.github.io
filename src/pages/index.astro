@@ -9,7 +9,7 @@
 import Layout from '../layouts/Layout.astro';
 import PostCard from '../components/PostCard.astro';
 import Pagination from '../components/Pagination.astro';
-import { SITE, SECTIONS } from '../consts';
+import { SITE, SECTIONS, sectionHref } from '../consts';
 import { withBase } from '../utils/url';
 import {
   getPublishedPosts,
@@ -50,7 +50,7 @@ const cards = pagePosts.map((post) => ({
   <section class="section-grid" aria-label="内容板块">
     {
       Object.values(SECTIONS).map((section) => (
-        <a class="section-card" href={withBase(`/${section.key}/`)}>
+        <a class="section-card" href={withBase(sectionHref(section))}>
           <span class="section-icon">{section.icon}</span>
           <div class="section-name">{section.name}</div>
           <p class="section-desc">{section.desc}</p>

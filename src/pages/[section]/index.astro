@@ -8,7 +8,7 @@
 import Layout from '../../layouts/Layout.astro';
 import PostCard from '../../components/PostCard.astro';
 import Pagination from '../../components/Pagination.astro';
-import { SECTIONS, SITE } from '../../consts';
+import { SECTIONS, SITE, isPostSection } from '../../consts';
 import { withBase } from '../../utils/url';
 import {
   getPublishedPosts,
@@ -19,11 +19,18 @@ import {
   type PostEntry,
 } from '../../utils/render-posts';
 
+/*
+ * 只给「文章驱动」的板块生成路由。
+ * 带 href 的板块（如竞赛）有自己的静态页面，这里必须跳过 ——
+ * 否则会与那个页面争同一个 URL。
+ */
 export async function getStaticPaths() {
-  return Object.values(SECTIONS).map((section) => ({
-    params: { section: section.key },
-    props: { key: section.key },
-  }));
+  return Object.values(SECTIONS)
+    .filter(isPostSection)
+    .map((section) => ({
+      params: { section: section.key },
+      props: { key: section.key },
+    }));
 }
 
 interface Props {

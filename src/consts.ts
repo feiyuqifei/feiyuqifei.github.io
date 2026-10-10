@@ -50,9 +50,19 @@ export const SITE = {
 } as const;
 
 /**
- * 三大板块定义。
- * key 必须与 src/content/posts/ 下的目录名一致，目录名即 URL 前缀。
- *   例：src/content/posts/tech/hello.md  →  /tech/hello
+ * 板块定义。
+ *
+ * 首页的板块卡片、导航、以及 [section] 动态路由都由这里驱动。
+ *
+ * 两种板块：
+ *   1. **文章板块**（tech / tools）—— key 必须与 src/content/posts/ 下的
+ *      目录名一致，目录名即 URL 前缀。
+ *        例：src/content/posts/tech/hello.md  →  /tech/hello
+ *      列表页由 src/pages/[section]/index.astro 自动生成。
+ *
+ *   2. **自定义页面板块**（competitions）—— 内容不是文章，
+ *      而是自己写的独立页面。这类必须声明 href 指向该页面，
+ *      动态路由会跳过它，避免与静态页面争同一路径。
  */
 export const SECTIONS = {
   tech: {
@@ -69,9 +79,46 @@ export const SECTIONS = {
     desc: '真正用得上的软件、脚本与配置，带下载与避坑',
     icon: '▲',
   },
+  /**
+   * 竞赛板块。
+   *
+   * 与 tech / tools 同级：首页板块卡片、导航、以及访问路径都并列。
+   * 区别是它不由 Markdown 文章驱动 —— 内容来自 COMPETITIONS 配置，
+   * 页面是手写的 src/pages/competitions.astro。
+   *
+   * 之所以给 href 而不是靠 key 推导路径：动态路由 [section] 会把
+   * key 当路径段，那样会和静态的 competitions.astro 争同一个 URL。
+   * 显式声明 href 后，动态路由跳过本板块，两者不冲突。
+   */
+  competitions: {
+    key: 'competitions',
+    name: '竞赛',
+    short: '竞赛',
+    desc: '各类信息安全竞赛的报名时间、地点、主办方与参考题解',
+    icon: '★',
+    href: '/competitions/',
+  },
 } as const;
 
 export type SectionKey = keyof typeof SECTIONS;
+
+/**
+ * 板块的访问路径。
+ *
+ * 统一在这里判断，避免「有 href 用 href、否则用 key」的逻辑散落在
+ * 首页、导航、分页等多处 —— 一旦散开，以后改规则很容易漏掉某处。
+ */
+export function sectionHref(section: (typeof SECTIONS)[SectionKey]): string {
+  return 'href' in section && section.href ? section.href : `/${section.key}/`;
+}
+
+/**
+ * 是否由 Markdown 文章驱动（决定要不要生成 [section] 动态路由）。
+ * 自定义页面板块返回 false，避免与静态页面争同一路径。
+ */
+export function isPostSection(section: (typeof SECTIONS)[SectionKey]): boolean {
+  return !('href' in section && section.href);
+}
 
 /** 导航栏 */
 export const NAV = [

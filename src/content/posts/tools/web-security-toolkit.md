@@ -67,7 +67,7 @@ Firefox 有自己的证书库。系统装了，不代表 Firefox 认，这点最
 
 用 mitmproxy 可以批量验证某个接口对参数类型有没有做校验：挂个脚本，把所有 `id` 参数从整数改成带引号的字符串，几百个请求几秒钟跑完。
 
-但请求量一大就得盯着。
+量一大就得盯着。
 
 这种活 Burp 社区版干不了，Intruder 限速。
 
@@ -176,11 +176,9 @@ WhatWeb 的规则库对国内常见的 OA、CMS、中间件覆盖不全，扫一
 
 ## 5. 推荐起步组合
 
-别一次装全部。按需装才不会陷入"装了一堆工具却不知道用哪个"的状态。
+别一次装全部。
 
-先装最小集合。
-
-CTF 刷题，最小够用的组合是这样：
+按需装才不会陷入"装了一堆工具却不知道用哪个"的状态。CTF 刷题，最小够用的组合是这样：
 
 1. 抓包改包：ZAP 或 Burp CE
 2. 扫目录：ffuf + SecLists 字典
@@ -200,6 +198,8 @@ CTF 刷题，最小够用的组合是这样：
 | 升级 Python | 3.12 / 3.13 | `winget install Python.Python.3.12`，注意别破坏现有 3.9 环境 |
 
 别急着升 Python。
+
+卡住的就那几个要求 3.10 以上的。
 
 最省事的是直接用 Kali。预装镜像里已经有 Burp、ZAP、ffuf、sqlmap、nmap、nikto、wpscan、whatweb、wfuzz、gobuster、dirb、hydra、metasploit，不用自己配 Ruby / Perl / Go 环境。
 
@@ -234,14 +234,14 @@ Windows 上要先装显卡驱动，而且必须用 `-d` 指定设备，否则可
 |---|---|---|
 | 抓包改包 | Burp Suite / ZAP | 无图形界面或要自动化 → mitmproxy |
 | 目录爆破 | ffuf | 需要递归爆破 → dirsearch / feroxbuster |
-| 参数发现 | Arjun | - |
+| 参数发现 | Arjun | 不需要换 |
 | 存活 / 指纹 | httpx | 命令行环境外想图形化 → Wappalyzer 插件 |
 | 模板漏扫 | nuclei | 要自己写 POC 时 |
-| SQL 注入 | sqlmap | - |
+| SQL 注入 | sqlmap | 不需要换 |
 | XSS | 手工 + dalfox / XSStrike | 工具只是辅助，最终靠人看源码 |
 | 哈希破解 | Hashcat | 格式识别困难 → John |
-| 内网 | BloodHound | - |
-| 数据处理 | CyberChef | - |
+| 内网 | BloodHound | 不需要换 |
+| 数据处理 | CyberChef | 不需要换 |
 
 ## 9. 学习与资源
 

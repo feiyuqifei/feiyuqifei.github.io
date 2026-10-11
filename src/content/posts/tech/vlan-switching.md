@@ -101,7 +101,7 @@ interface Gi0/24
 
 这就叫 VLAN 跳跃（VLAN Hopping），是个真实的安全问题。两端该看到的东西跑到了一起，会造成数据串台、策略失效，甚至能被利用来做跨 VLAN 攻击。
 
-所以 Trunk 两端的 Native VLAN 必须一致，并且最好改成没人用的 VLAN，比如 999，而不是默认的 VLAN 1。
+所以 **Trunk 两端的 Native VLAN 必须一致**，并且最好改成没人用的 VLAN，比如 999，而不是默认的 VLAN 1。
 
 ```
 # 两端都要改，建议改成一个专门的"黑洞"VLAN
@@ -180,7 +180,7 @@ interface Vlan10
 - [ ] Trunk 口：两端都是 trunk
 - [ ] allowed vlan：显式写出需要的 VLAN 列表
 - [ ] native vlan：两端一致，且改成非默认值（如 999）
-- [ ] 三层网关：SVI 配 IP 且 `no shutdown`
+- [ ] 三层网关：**SVI 配 IP 之后别忘了 `no shutdown`**
 - [ ] 终端侧：确认没有自己做 VLAN tagging
 - [ ] 验证：同 VLAN 能通、跨 VLAN 按策略通、不该通的不通
 

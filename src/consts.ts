@@ -162,6 +162,11 @@ export interface VideoItem {
   duration?: string;
   /** 发布日期，格式 YYYY-MM-DD。仅已发布的视频需要 */
   date?: string;
+  /**
+   * 锚点 id，用于从文章里直接链到某个视频（/videos/#<id>）。
+   * 只给需要被引用的视频加，用短横线分隔的英文，别用中文。
+   */
+  id?: string;
 }
 
 /**
@@ -171,17 +176,17 @@ export interface VideoItem {
  */
 export const VIDEOS: VideoItem[] = [
   // ── 已发布的视频追加到这里 ──
-  // 示例（取消注释并替换成真实数据）：
-  // {
-  //   status: 'published',
-  //   title: '用 Wireshark 定位一次丢包问题',
-  //   desc: '从两端同时抓包开始，逐步锁定是哪一跳开始丢的。',
-  //   embed: 'https://player.bilibili.com/player.html?bvid=BVxxxxxxxxxx&autoplay=0&danmaku=0',
-  //   poster: '/videos/wireshark-cover.jpg',
-  //   duration: '12:34',
-  //   date: '2026-05-01',
-  //   tags: ['网络工程', 'Wireshark'],
-  // },
+  {
+    status: 'published',
+    id: 'kali-locale',
+    title: 'Kali 中文教程',
+    desc: '把 Kali 的界面改成中文，全程实录。核心命令是 dpkg-reconfigure locales，它做的是重新配置系统的语言／地区设置：先勾选生成 zh_CN.UTF-8，再把它设为默认 locale，重启后登录界面就变中文了。',
+    src: '/videos/kali-chinese-locale.mp4',
+    poster: '/videos/kali-chinese-locale-cover.jpg',
+    duration: '2:16',
+    date: '2026-10-15',
+    tags: ['Kali', 'Linux', '虚拟机'],
+  },
 
   // ── 计划中的选题 ──
   {

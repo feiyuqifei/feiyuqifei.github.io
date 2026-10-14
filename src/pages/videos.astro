@@ -50,7 +50,7 @@ const planned = all.filter((v) => v.status === 'planned');
         </div>
 
         {published.map((v) => (
-          <article class="video-entry">
+          <article class="video-entry" id={v.id}>
             <Video
               src={v.src}
               embed={v.embed}

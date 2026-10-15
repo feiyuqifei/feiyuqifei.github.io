@@ -17,10 +17,20 @@
  * 本站原本只有 Umami（无 Cookie、匿名化），加这个之后不再是零 Cookie。
  * 不需要时把 SITE_STATS.enabled 设为 false 即可完全移除。
  *
- * 为什么初始状态是隐藏的：
- *   数字要等脚本请求回来才有（实测首次约 7 秒）。若一开始就显示占位符，
- *   脚本被广告拦截器拦掉时会永远留一个空白图标。所以默认隐藏，
- *   只在真的拿到数字后才显示 —— 宁可没有，也不要显示一个空壳。
+ * 为什么改成「先显示占位、再填数字」：
+ *   早先的做法是整行默认 hidden，只在拿到数字后才显示。理由是
+ *   怕脚本被拦截时留一个空壳。但代价是首次加载有 4 到 7 秒完全
+ *   空白 —— 站长本人就因此以为统计坏了，刷新一次（数字已进缓存）
+ *   又正常了。这说明「宁可没有」的取舍在体验上是错的：
+ *   读者分不清「正在加载」和「已经坏了」。
+ *
+ *   现在改成三段式：
+ *     1. 立即显示这一行，数字位置是空的、带一个轻微的呼吸动画，
+ *        表示正在加载
+ *     2. 数字到位后填进去，动画停止
+ *     3. 15 秒后仍无数字（多半被拦截插件拦了），整行淡出移除，
+ *        不留下空壳
+ *   这样既能看出「在加载」，坏了也不会永远挂着空壳。
  */
 import { SITE_STATS_SCRIPT } from '../scripts/site-stats';
 
@@ -33,7 +43,7 @@ const STATS = {
 {
   STATS.enabled && (
     <>
-      <div class="footer-line footer-stats" data-site-stats hidden>
+      <div class="footer-line footer-stats" data-site-stats>
         <span
           id="busuanzi_container_site_uv"
           class="footer-stat"
@@ -43,7 +53,7 @@ const STATS = {
             <circle cx="12" cy="8" r="3.6" />
             <path d="M4.5 20c0-3.6 3.4-6 7.5-6s7.5 2.4 7.5 6" />
           </svg>
-          <span id="busuanzi_value_site_uv">—</span>
+          <span id="busuanzi_value_site_uv" class="is-loading"></span>
         </span>
         <span class="footer-divider" aria-hidden="true">|</span>
         <span
@@ -55,12 +65,12 @@ const STATS = {
             <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" />
             <circle cx="12" cy="12" r="3" />
           </svg>
-          <span id="busuanzi_value_site_pv">—</span>
+          <span id="busuanzi_value_site_pv" class="is-loading"></span>
         </span>
       </div>
 
       {/*
-        加载脚本，并在数字到位后把整行显示出来。
+        加载脚本，并在数字到位后把数字填上、去掉加载态。
         用 MutationObserver 而不是定时器：脚本是异步的，
         轮询要么浪费要么错过；观察 DOM 变化最准。
         注意必须用 set:html —— 详见 src/scripts/site-stats.ts 的说明。
@@ -70,3 +80,37 @@ const STATS = {
     </>
   )
 }
+
+<style>
+  /* 加载态：数字位置留一个短横，配轻微呼吸动画。
+     不用「…」是因为它在等宽字体里宽度会跳，短横更稳。 */
+  .footer-stat .is-loading::before {
+    content: '·';
+    display: inline-block;
+    animation: stats-breathe 1.4s ease-in-out infinite;
+  }
+
+  @keyframes stats-breathe {
+    0%,
+    100% {
+      opacity: 0.25;
+    }
+    50% {
+      opacity: 0.75;
+    }
+  }
+
+  /* 尊重系统的「减少动态效果」设置 */
+  @media (prefers-reduced-motion: reduce) {
+    .footer-stat .is-loading::before {
+      animation: none;
+      opacity: 0.5;
+    }
+  }
+
+  /* 被拦截时整行淡出，避免留下空壳 */
+  .footer-stats.is-dropping {
+    transition: opacity 0.4s ease;
+    opacity: 0;
+  }
+</style>

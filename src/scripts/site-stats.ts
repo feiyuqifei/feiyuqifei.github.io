@@ -1,11 +1,17 @@
 /**
- * 访客统计的「显隐」脚本。
+ * 访客统计的「填数字 / 收空壳」脚本。
  *
- * 职责：Vercount 的数字是异步拉回来的（实测约 7 秒），
- * 在拿到之前不能显示统计行 —— 否则脚本被广告拦截器拦掉时，
- * 页面上会永远留一个空白图标。
+ * 职责：Vercount 的数字是异步拉回来的（首次实测 4 到 7 秒）。
+ * 这段脚本负责三件事：
+ *   1. 数字到位后填进元素，并去掉加载态的呼吸动画
+ *   2. 数字来之前保持占位显示，让读者看出是在加载而不是坏了
+ *   3. 超时仍无数字（多半被广告拦截插件拦掉）就把整行淡出移除，
+ *      不留下一个空壳
  *
- * 所以初始状态是 hidden，只在真的读到数字后才移除 hidden。
+ * 为什么不再是「默认 hidden，拿到数字才显示」：
+ *   那样首次加载会有 4 到 7 秒完全空白，站长本人因此以为统计坏了，
+ *   刷新一次（数字已进缓存）又正常。读者分不清「加载中」和「已损坏」，
+ *   所以改成占位先出、失败再收。
  *
  * 为什么抽成 TS 常量而不是写在 .astro 的 <script> 里：
  *   .astro 的 <script> 里写 JS 模板字符串会踩坑 ——
@@ -29,11 +35,24 @@ export const SITE_STATS_SCRIPT = `
     return t !== '' && t !== '\\u2014' && /[0-9]/.test(t);
   }
 
+  function settle(el) {
+    el.classList.remove('is-loading');
+  }
+
   function reveal() {
-    if (ready(uv) || ready(pv)) {
-      line.hidden = false;
-      return true;
-    }
+    var got = false;
+    if (ready(uv)) { settle(uv); got = true; }
+    if (ready(pv)) { settle(pv); got = true; }
+    return got;
+  }
+
+  /* 超时收尾：还没数字就淡出移除整行，不留空壳 */
+  function drop() {
+    if (ready(uv) || ready(pv)) return;
+    line.classList.add('is-dropping');
+    setTimeout(function () {
+      if (line.parentNode) line.parentNode.removeChild(line);
+    }, 450);
     return false;
   }
 
@@ -48,8 +67,24 @@ export const SITE_STATS_SCRIPT = `
   mo.observe(uv, { childList: true, characterData: true, subtree: true });
   mo.observe(pv, { childList: true, characterData: true, subtree: true });
 
-  /* 兜底：25 秒还没数字就放弃。
-     实测首次加载约 7 秒（无缓存时），给足余量但不无限挂着。 */
-  setTimeout(function () { mo.disconnect(); }, 25000);
+  /* 15 秒后给结论。之所以比早先的 25 秒短：占位状态一直挂着
+     同样是种打扰，而实测正常情况 4 到 7 秒就回来了。 */
+  setTimeout(function () {
+    mo.disconnect();
+    if (ready(uv) || ready(pv)) return;
+
+    var blocked = !document.querySelector('script[src*="vercount"]');
+    console.warn(
+      '[站点统计] 15 秒内没取到访客数字，已把统计行移除。\\n' +
+        (blocked
+          ? '原因：vercount.one/js 没被加载，通常是广告拦截插件（uBlock / AdGuard / 隐私盾）拦掉了。\\n' +
+            '处理：把 feiyuqifei.github.io 加入白名单，或用无痕窗口打开验证。'
+          : '原因：脚本已加载但数字没回来，可能是 vercount 服务暂时不可用。\\n' +
+            '处理：过几分钟刷新；仍不行可访问 https://feiyuqifei.github.io/api-check/ 做完整自检。')
+    );
+    drop();
+  }, 15000);
+
+  /* 离开页面时不用管，MutationObserver 随文档销毁 */
 })();
 `;

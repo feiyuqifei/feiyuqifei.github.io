@@ -1,0 +1,118 @@
+---
+/**
+ * 站内自检页。
+ *
+ * 为什么需要它：
+ *   页脚的访客统计依赖两个外部服务（vercount.one 与
+ *   events.vercount.one）。一旦数字不显示，从浏览器里分不清是
+ *   「被广告拦截器拦了」「脚本没加载」还是「服务挂了」，
+ *   只能凭感觉猜或者来问站长。这个页面把每一项单独测一遍并给出结论。
+ *
+ * 放在站内而不是用第三方测速站的原因：
+ *   读者的网络环境、拦截插件、所在地区都不同，
+ *   只有在他自己的浏览器里跑，结论才作数。
+ */
+import Layout from '../layouts/Layout.astro';
+import { API_CHECK_SCRIPT } from '../scripts/api-check';
+---
+
+<Layout
+  title="连接自检"
+  description="在你的浏览器里逐项检测本站依赖的外部服务是否可用，判断访客统计为什么不显示。"
+>
+  <article class="article-header">
+    <h1>连接自检</h1>
+    <p class="article-desc">
+      这个页面在你的浏览器里直接测试本站依赖的外部服务。如果页脚的访客数不显示，
+      先来这里看结论。
+    </p>
+  </article>
+
+  <div class="prose">
+    <p>
+      所有检测都在本地完成，结果不会上传到任何地方。每一项会给出三种状态之一：
+      正常、被拦截（通常是广告拦截插件）、加载失败（服务本身有问题）。
+    </p>
+
+    <div id="api-check-root" data-api-check>
+      <p class="check-hint">正在检测，请稍候，最多约 45 秒……</p>
+    </div>
+
+    <h2>如果确认是被拦截</h2>
+
+    <p>
+      把本站加入拦截插件的白名单即可。常见的是 uBlock Origin、AdGuard、
+      隐私獾（Privacy Badger），浏览器自带的「跟踪保护」也可能拦。
+      不确定的话用无痕窗口打开这一页对比，无痕模式下变正常就说明是插件。
+    </p>
+
+    <h2>关于隐私</h2>
+
+    <p>
+      访客统计用的是 Vercount。它会把访问的 URL 上报到
+      <code>events.vercount.one</code>，并写一个用于区分独立访客的 Cookie。
+      文章阅读统计用的是 Umami，那个无 Cookie、匿名化。
+      不接受这套权衡的话，可以在拦截插件里放行 Umami、拦掉 Vercount，
+      页脚数字不显示，其他功能都正常。
+    </p>
+  </div>
+</Layout>
+
+<script is:inline set:html={API_CHECK_SCRIPT} />
+
+<style>
+  .check-hint {
+    color: var(--text-muted);
+  }
+
+  .check-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.92rem;
+    margin-block: 1.2rem;
+  }
+
+  .check-table th,
+  .check-table td {
+    border: 1px solid var(--border);
+    padding: 0.55rem 0.7rem;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .check-table th {
+    background: var(--bg-subtle);
+    font-weight: 600;
+  }
+
+  .check-badge {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    white-space: nowrap;
+  }
+
+  .check-badge.is-ok {
+    background: color-mix(in srgb, #16a34a 18%, transparent);
+    color: #16a34a;
+  }
+
+  .check-badge.is-blocked {
+    background: color-mix(in srgb, #d97706 20%, transparent);
+    color: #d97706;
+  }
+
+  .check-badge.is-fail {
+    background: color-mix(in srgb, #dc2626 18%, transparent);
+    color: #dc2626;
+  }
+
+  .check-summary {
+    margin-top: 1.2rem;
+    padding: 0.8rem 1rem;
+    background: var(--bg-subtle);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--radius);
+  }
+</style>

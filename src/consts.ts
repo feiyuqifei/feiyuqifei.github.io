@@ -919,13 +919,19 @@ export const COMPETITIONS: CompetitionItem[] = [
 /**
  * 团队成员角色。
  *
- * 顺序即页面上的显示顺序，所以把指导老师放最前（对外介绍时的惯例），
- * 队长紧随其后，队员最后。想调整顺序改这个数组即可。
+ * 顺序即页面上的显示顺序：指导老师在最前（对外介绍时的惯例），
+ * 队长其次，然后现役队员，已毕业的放最后 ——
+ * 访客先关心"现在有谁"，历届属于查阅性质的内容。
  */
 export const TEAM_ROLES = [
   { key: 'advisor', name: '指导老师', desc: '负责技术方向把关与参赛事务协调。' },
   { key: 'captain', name: '队长', desc: '负责组队、赛程安排与对外联络。' },
   { key: 'member', name: '队员', desc: '' },
+  {
+    key: 'alumni',
+    name: '已毕业',
+    desc: '曾经在队里的成员。留着是为了记录，也方便后来的人找到他们。',
+  },
 ] as const;
 
 export type TeamRoleKey = (typeof TEAM_ROLES)[number]['key'];
@@ -946,11 +952,20 @@ export interface TeamMember {
    * 代号 / ID。留空则不显示。
    * 单独一个字段是因为：站长的博客用网名，但队里可能习惯叫真名，
    * 两者可以不一致，也可以只填其一。
+   * CTF 圈里 ID 往往比真名更有辨识度，两个都显示最有用。
    */
   handle?: string;
   /** 一句话身份，例如「2023 级网络工程」 */
   title?: string;
-  /** 擅长方向，例如 ['Web', 'Misc', '取证'] */
+  /**
+   * 届次 / 年级，例如 2023。用于组内排序（新的在前）与已毕业的标注。
+   */
+  year?: number;
+  /**
+   * 擅长方向，例如 ['Web', 'Misc', '取证']。
+   * 页面会把它链接到站内对应的标签页 —— 这是一个本站独有的优势：
+   * 点「Misc」就能直接看到该方向的题解与工具文章。
+   */
   focus?: string[];
   /** 两三句自我介绍 */
   bio?: string;
@@ -972,11 +987,17 @@ export interface TeamMember {
  *     role: 'captain',
  *     handle: 'ENIAC',
  *     title: '2023 级网络工程',
+ *     year: 2023,
  *     focus: ['Web', 'Misc'],
  *     bio: '负责 Web 方向，喜欢从源码里找问题。',
  *     avatar: '/team/zhangsan.jpg',
  *     links: [{ label: 'GitHub', href: 'https://github.com/xxx' }],
  *   },
+ *
+ * 关于「成员 → 站内文章」的关联：
+ *   文章 frontmatter 里的 author 字段如果等于某个成员的 name 或 handle，
+ *   该成员卡片上就会出现"在本站写过 N 篇文章"的入口。
+ *   这不需要额外维护映射表，填 author 即可。
  */
 export const TEAM_MEMBERS: TeamMember[] = [];
 

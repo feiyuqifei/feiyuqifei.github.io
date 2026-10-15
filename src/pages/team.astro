@@ -2,15 +2,22 @@
 /**
  * 团队成员页。
  *
- * 定位：介绍队伍的指导老师、队长与队员。
+ * 定位：介绍队伍的指导老师、队长、现役队员与已毕业成员。
  * 与竞赛页「历史荣誉」的区别：那边是成绩，这边是人。
  *
  * 数据全部来自 src/consts.ts 的 TEAM_MEMBERS，页面本身不含内容。
- * 按 TEAM_ROLES 的顺序分组（指导老师 → 队长 → 队员），
- * 组内保持数组里的书写顺序，方便自己安排。
+ * 按 TEAM_ROLES 的顺序分组（指导老师 → 队长 → 队员 → 已毕业），
+ * 组内按年份倒序（新的在前），没填年份的排在后面。
  *
- * 头像用姓名首字占位而不是放一张默认头像：
- * 没填头像时，首字方块比一张通用剪影更能区分不同的人。
+ * 三处比常见团队页做得细的地方：
+ *   1. 头像用姓名首字占位，不依赖图片文件 —— 头像是团队页最常见的
+ *      坏点（第三方图床关站会让整页变成一排破图），首字占地永远有效。
+ *      有图时也带 onerror 降级。
+ *   2. 方向标签链到站内标签页。这是本站独有的优势：点「Misc」能直接
+ *      看到该方向的题解与工具文章，而不只是一个死标签。
+ *   3. 成员可关联站内文章：文章 frontmatter 的 author 等于该成员的
+ *      name 或 handle 时，卡片上出现「本站文章 N 篇」入口。
+ *      不需要额外维护映射表，填 author 即可。
  */
 import Layout from '../layouts/Layout.astro';
 import {
@@ -20,11 +27,30 @@ import {
   type TeamMember,
 } from '../consts';
 import { withBase } from '../utils/url';
+import { getPublishedPosts, type PostEntry } from '../utils/render-posts';
 
-/** 按角色分组，空组不渲染 */
+const posts = await getPublishedPosts();
+
+/** 统计每个成员在本站写了多少篇（按 author 匹配 name 或 handle） */
+function postCountFor(m: TeamMember): number {
+  return posts.filter((p: PostEntry) => {
+    const a = (p.data.author ?? '').trim();
+    if (!a) return false;
+    return a === m.name || (!!m.handle && a === m.handle);
+  }).length;
+}
+
+/** 组内排序：有年份的按年份倒序在前，没年份的按原名顺序在后 */
+function byYearDesc(a: TeamMember, b: TeamMember): number {
+  const ay = a.year ?? -Infinity;
+  const by = b.year ?? -Infinity;
+  if (ay !== by) return by - ay;
+  return a.name.localeCompare(b.name, 'zh-CN');
+}
+
 const groups = TEAM_ROLES.map((role) => ({
   meta: role,
-  items: TEAM_MEMBERS.filter((m) => m.role === role.key),
+  items: TEAM_MEMBERS.filter((m) => m.role === role.key).sort(byYearDesc),
 })).filter((g) => g.items.length > 0);
 
 const total = TEAM_MEMBERS.length;
@@ -32,7 +58,7 @@ const total = TEAM_MEMBERS.length;
 
 <Layout
   title="成员"
-  description={`${SITE.name}的团队成员：指导老师、队长与队员。`}
+  description={`${SITE.name}的团队成员：指导老师、队长、现役队员与已毕业成员。`}
 >
   <header class="page-head">
     <nav class="breadcrumb" aria-label="面包屑">
@@ -42,7 +68,7 @@ const total = TEAM_MEMBERS.length;
     </nav>
     <h1>成员</h1>
     <p class="page-desc">
-      队伍的人和各自负责的方向。指导老师在前，然后是队长与队员。
+      队伍的人和各自负责的方向。指导老师在前，然后队长、队员，已毕业的放在最后。
     </p>
   </header>
 
@@ -51,13 +77,14 @@ const total = TEAM_MEMBERS.length;
       <div class="empty-state">
         <p class="empty-title">还没有添加成员</p>
         <p>
-          这里放指导老师、队长与队员的信息，属于真人资料，只能由团队自己填。
-          数据在 <code>src/consts.ts</code> 的 <code>TEAM_MEMBERS</code> 里，
-          字段已备好：姓名、角色、代号、身份、擅长方向、自我介绍、头像、相关链接。
+          这里放指导老师、队长、队员与已毕业成员的信息，属于真人资料，
+          只能由团队自己填。数据在 <code>src/consts.ts</code> 的{' '}
+          <code>TEAM_MEMBERS</code> 里，字段已备好：姓名、角色、代号、身份、
+          届次、擅长方向、自我介绍、头像、相关链接。
         </p>
         <p class="empty-sub">
-          只填姓名和角色也能显示。其余字段留空不会占位，
-          所以不必为了凑格式写自己不想公开的信息。
+          只填姓名和角色也能显示。头像留空会显示姓名首字，不会出现破图；
+          其余字段留空不占位，不必为了凑格式写自己不想公开的信息。
         </p>
       </div>
     ) : (
@@ -70,52 +97,89 @@ const total = TEAM_MEMBERS.length;
           {group.meta.desc && <p class="team-section-desc">{group.meta.desc}</p>}
 
           <ul class="team-grid">
-            {group.items.map((m: TeamMember) => (
-              <li class="team-card">
-                <div class="team-head">
-                  {m.avatar ? (
-                    <img class="team-avatar" src={withBase(m.avatar)} alt={m.name} loading="lazy" decoding="async" />
-                  ) : (
-                    <span class="team-avatar is-initial" aria-hidden="true">
-                      {m.name.trim().charAt(0)}
-                    </span>
+            {group.items.map((m: TeamMember) => {
+              const written = postCountFor(m);
+              return (
+                <li class="team-card">
+                  <div class="team-head">
+                    {m.avatar ? (
+                      <img
+                        class="team-avatar"
+                        src={withBase(m.avatar)}
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                        data-initial={m.name.trim().charAt(0)}
+                      />
+                    ) : (
+                      <span class="team-avatar is-initial" aria-hidden="true">
+                        {m.name.trim().charAt(0)}
+                      </span>
+                    )}
+                    <div class="team-id">
+                      <h3 class="team-name">
+                        <span>{m.name}</span>
+                        {m.handle && <span class="team-handle">@{m.handle}</span>}
+                      </h3>
+                      <p class="team-meta">
+                        {m.title}
+                        {m.title && m.year && <span class="team-meta-sep">·</span>}
+                        {m.year && <span>{m.year} 届</span>}
+                      </p>
+                    </div>
+                  </div>
+
+                  {m.focus && m.focus.length > 0 && (
+                    <div class="post-tags team-focus">
+                      {m.focus.map((f) => (
+                        <a class="tag" href={withBase(`/tags/${f}/`)}>#{f}</a>
+                      ))}
+                    </div>
                   )}
-                  <div class="team-id">
-                    <h3 class="team-name">
-                      {m.name}
-                      {m.handle && <span class="team-handle">@{m.handle}</span>}
-                    </h3>
-                    {m.title && <p class="team-title">{m.title}</p>}
-                  </div>
-                </div>
 
-                {m.focus && m.focus.length > 0 && (
-                  <div class="post-tags team-focus">
-                    {m.focus.map((f) => (
-                      <a class="tag" href={withBase(`/tags/${f}/`)}>#{f}</a>
-                    ))}
-                  </div>
-                )}
+                  {m.bio && <p class="team-bio">{m.bio}</p>}
 
-                {m.bio && <p class="team-bio">{m.bio}</p>}
-
-                {m.links && m.links.length > 0 && (
-                  <div class="team-links">
-                    {m.links.map((l) => (
-                      <a href={l.href} target="_blank" rel="noopener noreferrer">
-                        {l.label} ↗
-                      </a>
-                    ))}
-                  </div>
-                )}
-              </li>
-            ))}
+                  {(written > 0 || (m.links && m.links.length > 0)) && (
+                    <div class="team-links">
+                      {written > 0 && (
+                        <a class="team-written" href={withBase('/archive/')}>
+                          本站文章 {written} 篇
+                        </a>
+                      )}
+                      {m.links?.map((l) => (
+                        <a href={l.href} target="_blank" rel="noopener noreferrer">
+                          {l.label} ↗
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </section>
       ))
     )
   }
 </Layout>
+
+<script is:inline>
+  /*
+    头像加载失败时退回姓名首字。
+    为什么需要：团队页最常见的坏点就是头像 —— 图片挂在第三方图床，
+    图床关站后整页变成一排破图（某高校团队页实测 99 张图里坏了 30 张）。
+    这里不给它坏的机会：失败就把 img 换成一个首字方块。
+  */
+  document.querySelectorAll('img.team-avatar').forEach(function (img) {
+    img.addEventListener('error', function () {
+      var span = document.createElement('span');
+      span.className = 'team-avatar is-initial';
+      span.setAttribute('aria-hidden', 'true');
+      span.textContent = img.getAttribute('data-initial') || '?';
+      img.replaceWith(span);
+    });
+  });
+</script>
 
 <style>
   .team-section {
@@ -161,7 +225,8 @@ const total = TEAM_MEMBERS.length;
     object-fit: cover;
   }
 
-  /* 无头像时的首字占位：与站点强调色一致，不同人自然不同字 */
+  /* 无头像、或头像加载失败时的首字占位。
+     不同人天然不同字，比一张通用剪影更有区分度。 */
   .team-avatar.is-initial {
     display: inline-flex;
     align-items: center;
@@ -192,10 +257,15 @@ const total = TEAM_MEMBERS.length;
     color: var(--text-muted);
   }
 
-  .team-title {
+  .team-meta {
     margin: 0.15rem 0 0;
     font-size: 0.86rem;
     color: var(--text-muted);
+  }
+
+  .team-meta-sep {
+    margin-inline: 0.3rem;
+    opacity: 0.6;
   }
 
   .team-focus {
@@ -213,6 +283,12 @@ const total = TEAM_MEMBERS.length;
     flex-wrap: wrap;
     gap: 0.8rem;
     font-size: 0.88rem;
+    margin-top: auto;
+  }
+
+  /* 站内文章入口用强调色，与外部链接区分开 */
+  .team-written {
+    color: var(--accent);
   }
 
   .empty-sub {

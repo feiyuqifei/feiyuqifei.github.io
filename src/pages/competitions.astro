@@ -20,10 +20,12 @@ import {
   SITE,
   COMPETITIONS,
   COMPETITION_GROUPS,
+  COMPETITION_RECORDS,
   type CompetitionItem,
   type CompetitionGroupKey,
 } from '../consts';
 import { withBase } from '../utils/url';
+import { COMPETITION_TABS_SCRIPT } from '../scripts/competition-tabs';
 
 /** 月份标签 */
 const MONTH_NAMES = [
@@ -62,6 +64,19 @@ const sections = groupKeys
     return { key, meta: COMPETITION_GROUPS[key], total: items.length, buckets };
   })
   .filter((s) => s.total > 0);
+
+/**
+ * 参赛记录按年份倒序分组（新的在前）。
+ * 同一年内保持数组里的书写顺序，方便自己按时间线排。
+ * 数据为空时返回空数组，页面据此显示填写说明而不是空白。
+ */
+const recordYears = (() => {
+  const years = [...new Set(COMPETITION_RECORDS.map((r) => r.year))].sort((a, b) => b - a);
+  return years.map((year) => ({
+    year,
+    items: COMPETITION_RECORDS.filter((r) => r.year === year),
+  }));
+})();
 ---
 
 <Layout
@@ -77,11 +92,50 @@ const sections = groupKeys
     </nav>
     <h1>竞赛</h1>
     <p class="page-desc">
-      竞赛的报名时间、地点、主办方与官网入口。<strong>按报名月份归档</strong>。
-      报名时间才是需要行动的那个时间点，所以排序以它为准。
+      两个视角：<strong>全年竞赛</strong>看有哪些比赛、什么时候报名；
+      <strong>历史荣誉</strong>是已经打完的比赛和成绩。
     </p>
   </header>
 
+  {/*
+    标签切换而不是分成两个页面：
+    两者是同一个人对竞赛的两个视角（面向未来 / 面向过去），
+    分开会增加导航负担；合在一页又能各自保持完整。
+    切换用真实的 tab 语义（role=tablist/tab/tabpanel + aria-selected），
+    这样键盘和读屏软件都能正常用，且不依赖任何框架。
+  */}
+  <div class="comp-tabs" role="tablist" aria-label="竞赛视图">
+    <button
+      class="comp-tab is-active"
+      role="tab"
+      id="tab-yearly"
+      aria-controls="panel-yearly"
+      aria-selected="true"
+      type="button"
+    >
+      全年竞赛
+      <span class="comp-tab-count">{COMPETITIONS.length}</span>
+    </button>
+    <button
+      class="comp-tab"
+      role="tab"
+      id="tab-records"
+      aria-controls="panel-records"
+      aria-selected="false"
+      tabindex="-1"
+      type="button"
+    >
+      历史荣誉
+      <span class="comp-tab-count">{COMPETITION_RECORDS.length}</span>
+    </button>
+  </div>
+
+  <div
+    class="comp-panel"
+    id="panel-yearly"
+    role="tabpanel"
+    aria-labelledby="tab-yearly"
+  >
   {
     sections.length === 0 ? (
       <div class="empty-state">
@@ -249,4 +303,157 @@ const sections = groupKeys
       </p>
     </div>
   </section>
+  </div>
+
+  {/* ────────── 历史荣誉 ────────── */}
+  <div
+    class="comp-panel"
+    id="panel-records"
+    role="tabpanel"
+    aria-labelledby="tab-records"
+    hidden
+  >
+    {
+      recordYears.length === 0 ? (
+        <div class="empty-state">
+          <p class="empty-title">还没有记录参赛成绩</p>
+          <p>
+            这里放的是已经打完的比赛和拿到的成绩，属于个人经历，
+            只能由站长自己填。数据在 <code>src/consts.ts</code> 的
+            <code>COMPETITION_RECORDS</code> 里，字段已备好：
+            年份、赛事名、奖项、组别、名次、队友、证书链接、备注。
+          </p>
+          <p class="empty-sub">
+            留空是有意的。没把握的成绩宁可先不写，也不要填一个记不清的数字。
+          </p>
+        </div>
+      ) : (
+        recordYears.map((group) => (
+          <section class="comp-section" aria-label={`${group.year} 年`}>
+            <div class="comp-section-head">
+              <h2 class="comp-section-title">{group.year} 年</h2>
+              <span class="comp-section-count">{group.items.length} 项</span>
+            </div>
+
+            <ul class="comp-list">
+              {group.items.map((r) => (
+                <li class="comp-item rec-item">
+                  <div class="comp-main">
+                    <div class="comp-head">
+                      <h3 class="comp-name">{r.name}</h3>
+                      {r.award && <span class="comp-badge is-award">{r.award}</span>}
+                      {r.category && <span class="comp-badge">{r.category}</span>}
+                    </div>
+
+                    {(r.rank || (r.teammates && r.teammates.length > 0)) && (
+                      <dl class="comp-fields">
+                        {r.rank && (
+                          <>
+                            <dt>名次</dt>
+                            <dd class="is-em">{r.rank}</dd>
+                          </>
+                        )}
+                        {r.teammates && r.teammates.length > 0 && (
+                          <>
+                            <dt>队友</dt>
+                            <dd>{r.teammates.join('、')}</dd>
+                          </>
+                        )}
+                      </dl>
+                    )}
+
+                    {r.note && <p class="comp-desc">{r.note}</p>}
+                  </div>
+
+                  {r.certificate && (
+                    <a
+                      class="comp-link"
+                      href={r.certificate}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      证书 / 公示 ↗
+                    </a>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))
+      )
+    }
+  </div>
 </Layout>
+
+<script is:inline set:html={COMPETITION_TABS_SCRIPT} />
+
+<style>
+  .comp-tabs {
+    display: flex;
+    gap: 0.4rem;
+    margin-block: 1.4rem 1.8rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .comp-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.55rem 0.95rem;
+    border: none;
+    background: none;
+    color: var(--text-muted);
+    font-size: 0.98rem;
+    font-family: inherit;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+
+  .comp-tab:hover {
+    color: var(--text);
+  }
+
+  .comp-tab.is-active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  .comp-tab:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm, 4px);
+  }
+
+  .comp-tab-count {
+    display: inline-block;
+    min-width: 1.5em;
+    padding: 0.05em 0.4em;
+    border-radius: 999px;
+    background: var(--bg-subtle);
+    font-size: 0.8rem;
+    line-height: 1.5;
+    text-align: center;
+  }
+
+  /* 荣誉标签的配色：与「月份待核实」的警示色区分开 */
+  .comp-badge.is-award {
+    background: color-mix(in srgb, var(--accent) 16%, transparent);
+    color: var(--accent);
+    border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+  }
+
+  .empty-sub {
+    margin-top: 0.6rem;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+  }
+
+  @media (width<=560px) {
+    .comp-tab {
+      padding: 0.5rem 0.7rem;
+      font-size: 0.92rem;
+    }
+  }
+</style>

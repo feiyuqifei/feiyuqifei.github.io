@@ -1,0 +1,223 @@
+---
+/**
+ * 团队成员页。
+ *
+ * 定位：介绍队伍的指导老师、队长与队员。
+ * 与竞赛页「历史荣誉」的区别：那边是成绩，这边是人。
+ *
+ * 数据全部来自 src/consts.ts 的 TEAM_MEMBERS，页面本身不含内容。
+ * 按 TEAM_ROLES 的顺序分组（指导老师 → 队长 → 队员），
+ * 组内保持数组里的书写顺序，方便自己安排。
+ *
+ * 头像用姓名首字占位而不是放一张默认头像：
+ * 没填头像时，首字方块比一张通用剪影更能区分不同的人。
+ */
+import Layout from '../layouts/Layout.astro';
+import {
+  SITE,
+  TEAM_MEMBERS,
+  TEAM_ROLES,
+  type TeamMember,
+} from '../consts';
+import { withBase } from '../utils/url';
+
+/** 按角色分组，空组不渲染 */
+const groups = TEAM_ROLES.map((role) => ({
+  meta: role,
+  items: TEAM_MEMBERS.filter((m) => m.role === role.key),
+})).filter((g) => g.items.length > 0);
+
+const total = TEAM_MEMBERS.length;
+---
+
+<Layout
+  title="成员"
+  description={`${SITE.name}的团队成员：指导老师、队长与队员。`}
+>
+  <header class="page-head">
+    <nav class="breadcrumb" aria-label="面包屑">
+      <a href={withBase('/')}>首页</a>
+      <span> / </span>
+      <span>成员</span>
+    </nav>
+    <h1>成员</h1>
+    <p class="page-desc">
+      队伍的人和各自负责的方向。指导老师在前，然后是队长与队员。
+    </p>
+  </header>
+
+  {
+    total === 0 ? (
+      <div class="empty-state">
+        <p class="empty-title">还没有添加成员</p>
+        <p>
+          这里放指导老师、队长与队员的信息，属于真人资料，只能由团队自己填。
+          数据在 <code>src/consts.ts</code> 的 <code>TEAM_MEMBERS</code> 里，
+          字段已备好：姓名、角色、代号、身份、擅长方向、自我介绍、头像、相关链接。
+        </p>
+        <p class="empty-sub">
+          只填姓名和角色也能显示。其余字段留空不会占位，
+          所以不必为了凑格式写自己不想公开的信息。
+        </p>
+      </div>
+    ) : (
+      groups.map((group) => (
+        <section class="team-section" aria-label={group.meta.name}>
+          <div class="list-head">
+            <h2>{group.meta.name}</h2>
+            <span class="count">{group.items.length} 人</span>
+          </div>
+          {group.meta.desc && <p class="team-section-desc">{group.meta.desc}</p>}
+
+          <ul class="team-grid">
+            {group.items.map((m: TeamMember) => (
+              <li class="team-card">
+                <div class="team-head">
+                  {m.avatar ? (
+                    <img class="team-avatar" src={withBase(m.avatar)} alt={m.name} loading="lazy" decoding="async" />
+                  ) : (
+                    <span class="team-avatar is-initial" aria-hidden="true">
+                      {m.name.trim().charAt(0)}
+                    </span>
+                  )}
+                  <div class="team-id">
+                    <h3 class="team-name">
+                      {m.name}
+                      {m.handle && <span class="team-handle">@{m.handle}</span>}
+                    </h3>
+                    {m.title && <p class="team-title">{m.title}</p>}
+                  </div>
+                </div>
+
+                {m.focus && m.focus.length > 0 && (
+                  <div class="post-tags team-focus">
+                    {m.focus.map((f) => (
+                      <a class="tag" href={withBase(`/tags/${f}/`)}>#{f}</a>
+                    ))}
+                  </div>
+                )}
+
+                {m.bio && <p class="team-bio">{m.bio}</p>}
+
+                {m.links && m.links.length > 0 && (
+                  <div class="team-links">
+                    {m.links.map((l) => (
+                      <a href={l.href} target="_blank" rel="noopener noreferrer">
+                        {l.label} ↗
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))
+    )
+  }
+</Layout>
+
+<style>
+  .team-section {
+    margin-top: 2.2rem;
+  }
+
+  .team-section-desc {
+    margin: 0.3rem 0 1rem;
+    color: var(--text-muted);
+    font-size: 0.92rem;
+  }
+
+  .team-grid {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+  }
+
+  .team-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+    padding: 1.1rem 1.2rem;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+
+  .team-head {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+  }
+
+  .team-avatar {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    object-fit: cover;
+  }
+
+  /* 无头像时的首字占位：与站点强调色一致，不同人自然不同字 */
+  .team-avatar.is-initial {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in srgb, var(--accent) 18%, transparent);
+    color: var(--accent);
+    font-size: 1.15rem;
+    font-weight: 600;
+    line-height: 1;
+  }
+
+  .team-id {
+    min-width: 0;
+  }
+
+  .team-name {
+    margin: 0;
+    font-size: 1.02rem;
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+  }
+
+  .team-handle {
+    font-size: 0.84rem;
+    font-weight: 400;
+    color: var(--text-muted);
+  }
+
+  .team-title {
+    margin: 0.15rem 0 0;
+    font-size: 0.86rem;
+    color: var(--text-muted);
+  }
+
+  .team-focus {
+    margin: 0;
+  }
+
+  .team-bio {
+    margin: 0;
+    font-size: 0.92rem;
+    line-height: 1.65;
+  }
+
+  .team-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+    font-size: 0.88rem;
+  }
+
+  .empty-sub {
+    margin-top: 0.6rem;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+  }
+</style>

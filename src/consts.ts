@@ -127,6 +127,7 @@ export const NAV = [
   { text: '工具分享', href: '/tools/' },
   { text: '视频', href: '/videos/' },
   { text: '竞赛', href: '/competitions/' },
+  { text: '成员', href: '/team/' },
   { text: '标签', href: '/tags/' },
   { text: '归档', href: '/archive/' },
   { text: '关于', href: '/about/' },
@@ -915,9 +916,72 @@ export const COMPETITIONS: CompetitionItem[] = [
   },
 ];
 
+/**
+ * 团队成员角色。
+ *
+ * 顺序即页面上的显示顺序，所以把指导老师放最前（对外介绍时的惯例），
+ * 队长紧随其后，队员最后。想调整顺序改这个数组即可。
+ */
+export const TEAM_ROLES = [
+  { key: 'advisor', name: '指导老师', desc: '负责技术方向把关与参赛事务协调。' },
+  { key: 'captain', name: '队长', desc: '负责组队、赛程安排与对外联络。' },
+  { key: 'member', name: '队员', desc: '' },
+] as const;
+
+export type TeamRoleKey = (typeof TEAM_ROLES)[number]['key'];
+
+/**
+ * 团队成员条目。
+ *
+ * 与 CompetitionRecord 一样，这些是真人信息，只能由本人填写。
+ * 只留 name 与 role 必填，其余按需 —— 队友未必愿意公开真名或联系方式，
+ * 所以 handle（代号）单独一个字段，可以和 name 不同。
+ */
+export interface TeamMember {
+  /** 姓名或常用称呼 */
+  name: string;
+  /** 角色，决定归到哪一组 */
+  role: TeamRoleKey;
+  /**
+   * 代号 / ID。留空则不显示。
+   * 单独一个字段是因为：站长的博客用网名，但队里可能习惯叫真名，
+   * 两者可以不一致，也可以只填其一。
+   */
+  handle?: string;
+  /** 一句话身份，例如「2023 级网络工程」 */
+  title?: string;
+  /** 擅长方向，例如 ['Web', 'Misc', '取证'] */
+  focus?: string[];
+  /** 两三句自我介绍 */
+  bio?: string;
+  /** 头像，放 public/team/ 下。留空则显示姓名首字占位 */
+  avatar?: string;
+  /** 相关链接，例如 GitHub、博客、B 站 */
+  links?: { label: string; href: string }[];
+}
+
+/**
+ * 团队成员清单 —— 成员页的唯一数据源。
+ *
+ * 目前为空：这是真人的信息，只能由团队自己填。
+ * 留空时页面显示填写说明而不是空白，避免看起来像坏了。
+ *
+ * 填写示例（取消注释并改成真实内容即可）：
+ *   {
+ *     name: '张三',
+ *     role: 'captain',
+ *     handle: 'ENIAC',
+ *     title: '2023 级网络工程',
+ *     focus: ['Web', 'Misc'],
+ *     bio: '负责 Web 方向，喜欢从源码里找问题。',
+ *     avatar: '/team/zhangsan.jpg',
+ *     links: [{ label: 'GitHub', href: 'https://github.com/xxx' }],
+ *   },
+ */
+export const TEAM_MEMBERS: TeamMember[] = [];
+
 /** 页脚社交链接 —— 把 href 换成你自己的，留空字符串则不显示该图标 */
-export const SOCIALS = [
-  { name: 'GitHub', href: 'https://github.com/feiyuqifei', icon: 'github' },
+export const SOCIALS = [  { name: 'GitHub', href: 'https://github.com/feiyuqifei', icon: 'github' },
   { name: 'RSS', href: '/rss.xml', icon: 'rss' },
 ] as const;
 

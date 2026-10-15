@@ -8,6 +8,7 @@ import { withBase } from '../utils/url';
 import Logo from './Logo.astro';
 import ThemeToggle from './ThemeToggle.astro';
 import Search from './Search.astro';
+import { NAV_SCROLL_SCRIPT } from '../scripts/nav-scroll';
 
 // 当前路径，用于导航高亮。统一去掉结尾斜杠再比较。
 const current = Astro.url.pathname.replace(/\/+$/, '') || '/';
@@ -28,7 +29,7 @@ function isActive(href: string): boolean {
       <span class="brand-en">{SITE.nameEn}</span>
     </a>
 
-    <nav class="nav" aria-label="主导航">
+    <nav class="nav" aria-label="主导航" data-nav data-nav-scroll="start">
       {
         NAV.map((item) => (
           <a href={withBase(item.href)} aria-current={isActive(item.href) ? 'page' : undefined}>
@@ -42,3 +43,5 @@ function isActive(href: string): boolean {
     <ThemeToggle />
   </div>
 </header>
+
+<script is:inline set:html={NAV_SCROLL_SCRIPT} />

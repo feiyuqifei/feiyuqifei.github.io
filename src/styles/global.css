@@ -663,6 +663,40 @@ code {
     display: none;
   }
 
+  /*
+    窄屏可横向滑动，但被裁掉的部分没有任何提示 ——
+    实测 393px 视口下 8 项里有 4 项落在可视区外，
+    导致「标签 / 归档 / 关于」在手机上等于不存在。
+
+    用 mask-image 做边缘渐隐，而不是覆盖一层渐变元素：
+    渐隐层会挡住在它下面的链接，mask 不参与命中测试，点击不受影响。
+    状态由 nav-scroll.ts 写在 data-nav-scroll 属性上。
+
+    属性值的语义是「已经滚到哪一端」，据此决定渐隐哪一侧：
+      start —— 已到开头，右边还有内容  → 渐隐右侧
+      end   —— 已到末尾，左边还有内容  → 渐隐左侧
+      both  —— 两头都有                 → 两侧都渐隐
+    第一版把这两个写反了，导致提示出现在没有内容的那一侧，
+    测试才暴露出来。
+  */
+  &[data-nav-scroll='start'] {
+    mask-image: linear-gradient(to right, #000 calc(100% - 26px), transparent);
+  }
+
+  &[data-nav-scroll='end'] {
+    mask-image: linear-gradient(to right, transparent, #000 26px);
+  }
+
+  &[data-nav-scroll='both'] {
+    mask-image: linear-gradient(
+      to right,
+      transparent,
+      #000 26px,
+      #000 calc(100% - 26px),
+      transparent
+    );
+  }
+
   a {
     color: var(--text-muted);
     padding: 0.4rem 0.7rem;

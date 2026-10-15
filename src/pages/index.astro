@@ -2,9 +2,25 @@
 /**
  * 首页。
  *
- * 结构：Hero（标语）→ 板块入口 → 最新文章列表。
- * 刻意不放侧边栏、不放近期评论、不放热门标签堆砌——
+ * 结构：Hero → 分类入口（仅第一页）→ 最新文章。
+ * 刻意不放侧边栏、不放近期评论、不放热门标签堆砌 ——
  * 首页的唯一任务是让访客在 5 秒内明白"这里写什么"，然后点进去。
+ *
+ * 关于分类入口：
+ *   本站的分类（网络 / 工具 / 安全 / 硬件）是每篇唯一的主题大类，
+ *   比标签粗。放在首页是因为「最新文章」按时间排，早写的好文章会被
+ *   不断往下挤，只靠翻页很难被发现；分类提供了一个按主题进入的口子。
+ *   只在第一页显示：翻到第 2 页的人已经在浏览列表了，
+ *   再插一段分类会打断阅读。
+ *
+ * 首页支持分页，但**只负责第 1 页**；第 2 页起由 src/pages/page/[page].astro
+ * 生成，路径形如 /page/2/。
+ *
+ * 为什么不用 ?page=N 查询参数（最早的写法）：
+ *   Pagination 组件生成的是路径式链接（/page/2/），而这边读的是查询参数，
+ *   两者对不上。结果是首页的「下一页」指向 /page/2/，而那个页面从未被
+ *   生成，线上直接 404 —— 13 篇文章里有 3 篇任何入口都点不到。
+ *   现在统一走路径式，与板块页 [section]/page/[page].astro 保持一致。
  */
 import Layout from '../layouts/Layout.astro';
 import PostCard from '../components/PostCard.astro';
@@ -15,36 +31,43 @@ import {
   getPublishedPosts,
   toCardData,
   estimateReading,
+  getCategoriesWithCount,
+  paginate,
   totalPages,
 } from '../utils/render-posts';
 
 const allPosts = await getPublishedPosts();
 
-// 首页支持 ?page=N 分页。静态站没有服务端，所以用查询参数而不是路径分页，
-// 好处是首页始终只有一个 URL，对 SEO 更友好。
-const url = Astro.url;
-const rawPage = Number.parseInt(url.searchParams.get('page') ?? '1', 10);
-const current = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
-
 const perPage = SITE.postsPerPage;
 const pages = totalPages(allPosts.length, perPage);
-const safePage = Math.min(current, pages);
-const pagePosts = allPosts.slice((safePage - 1) * perPage, safePage * perPage);
+/* 第一页固定用第一段数据；paginate 在这里只为保持与分页页一致的取数方式 */
+const pagePosts = paginate(allPosts, 1, perPage) ?? [];
+const safePage = 1;
 
 const cards = pagePosts.map((post) => ({
   data: toCardData(post),
   reading: estimateReading(post),
 }));
+
+/** 分类入口，按篇数倒序 */
+const categories = getCategoriesWithCount(allPosts);
 ---
 
 <Layout title={SITE.name} description={SITE.description}>
   <section class="hero">
     <h1>{SITE.tagline}</h1>
-    <p class="hero-tagline">
-      {SITE.name}的技术自留地。把水下那些读源码、抓波形、翻手册的过程记录下来，
-      偶尔捞点能直接用的东西上来。
-    </p>
     <p class="hero-desc">{SITE.description}</p>
+    <p class="hero-stat">
+      <span>{allPosts.length} 篇文章</span>
+      <span class="hero-stat-sep" aria-hidden="true">·</span>
+      <span>{categories.length} 个分类</span>
+      {Object.values(SECTIONS).length > 0 && (
+        <>
+          <span class="hero-stat-sep" aria-hidden="true">·</span>
+          <span>持续更新</span>
+        </>
+      )}
+    </p>
   </section>
 
   <section class="section-grid" aria-label="内容板块">
@@ -58,6 +81,25 @@ const cards = pagePosts.map((post) => ({
       ))
     }
   </section>
+
+  {
+    categories.length > 0 && safePage === 1 && (
+      <nav class="home-cats" aria-label="按分类浏览">
+        <span class="home-cats-label">按分类看</span>
+        <div class="home-cats-list">
+          {categories.map((c) => (
+            <a class="home-cat" href={withBase(`/categories/${c.name}/`)}>
+              {c.name}
+              <span class="home-cat-count">{c.count}</span>
+            </a>
+          ))}
+          <a class="home-cat is-all" href={withBase('/categories/')}>
+            全部分类 →
+          </a>
+        </div>
+      </nav>
+    )
+  }
 
   <section aria-label="最新文章">
     <div class="list-head">
@@ -93,3 +135,82 @@ const cards = pagePosts.map((post) => ({
     <a href={withBase('/archive/')}>查看全部文章归档 →</a>
   </p>
 </Layout>
+
+<style>
+  .hero-stat {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem;
+    margin: 0.9rem 0 0;
+    font-size: 0.88rem;
+    color: var(--text-muted);
+  }
+
+  .hero-stat-sep {
+    opacity: 0.5;
+  }
+
+  /* 分类入口：一行能放下的横向条，比一块卡片轻，不抢板块的注意力。
+     下边距要留够 —— 第一版只给了 0.4rem，与「最新文章」标题挤在一起。 */
+  .home-cats {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.7rem;
+    margin: 1.8rem 0 2.4rem;
+    padding: 0.85rem 1rem;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+
+  .home-cats-label {
+    font-size: 0.88rem;
+    color: var(--text-muted);
+    margin-inline-end: 0.2rem;
+  }
+
+  .home-cats-list {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 0.5rem;
+    min-width: 0;
+  }
+
+  .home-cat {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.3rem;
+    padding: 0.28rem 0.7rem;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--bg-elevated);
+    font-size: 0.9rem;
+    transition:
+      border-color var(--dur-fast) var(--ease-out),
+      color var(--dur-fast) var(--ease-out);
+  }
+
+  .home-cat:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .home-cat-count {
+    font-size: 0.8em;
+    color: var(--text-muted);
+  }
+
+  .home-cat.is-all {
+    border-style: dashed;
+    color: var(--text-muted);
+  }
+
+  @media (max-width: 480px) {
+    .home-cats {
+      padding: 0.75rem 0.8rem;
+    }
+  }
+</style>

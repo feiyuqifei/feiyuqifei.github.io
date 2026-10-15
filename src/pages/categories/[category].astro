@@ -1,0 +1,106 @@
+---
+/**
+ * 单个分类下的文章列表。
+ *
+ * 路径参数是中文分类名，与标签页同样刻意不做 decodeURIComponent：
+ * Astro 从 URL 取出的 params 已经解码过一次，再解一次会把含 % 的名字弄坏。
+ *
+ * 与标签页的区别：标签可以给一篇文章打很多个，分类只有一个。
+ * 所以这里不需要考虑"重复归入多个分类"的情况。
+ */
+import Layout from '../../layouts/Layout.astro';
+import PostCard from '../../components/PostCard.astro';
+import { withBase } from '../../utils/url';
+import {
+  getPublishedPosts,
+  toCardData,
+  estimateReading,
+  getCategoriesWithCount,
+  type PostEntry,
+} from '../../utils/render-posts';
+
+export async function getStaticPaths() {
+  const posts = await getPublishedPosts();
+  return getCategoriesWithCount(posts).map((c) => ({
+    params: { category: c.name },
+    props: { category: c.name },
+  }));
+}
+
+interface Props {
+  category: string;
+}
+
+const { category } = Astro.props;
+const all = await getPublishedPosts();
+const posts = all.filter((post: PostEntry) => (post.data.category ?? '') === category);
+const others = getCategoriesWithCount(all).filter((c) => c.name !== category);
+
+const cards = posts.map((post) => ({
+  data: toCardData(post),
+  reading: estimateReading(post),
+}));
+---
+
+<Layout title={`分类：${category}`} description={`分类「${category}」下的全部文章`}>
+  <header class="page-head">
+    <nav class="breadcrumb" aria-label="面包屑">
+      <a href={withBase('/')}>首页</a>
+      <span> / </span>
+      <a href={withBase('/categories/')}>分类</a>
+      <span> / </span>
+      <span>{category}</span>
+    </nav>
+    <h1>{category}</h1>
+    <p class="page-desc">共 {posts.length} 篇文章。</p>
+  </header>
+
+  {
+    cards.length > 0 ? (
+      <ul class="post-list">
+        {cards.map((card) => (
+          <PostCard
+            id={card.data.id}
+            title={card.data.title}
+            description={card.data.description}
+            pubDate={card.data.pubDate}
+            tags={card.data.tags}
+            readingLabel={card.reading}
+          />
+        ))}
+      </ul>
+    ) : (
+      <p class="empty">这个分类下暂时没有文章。</p>
+    )
+  }
+
+  {
+    others.length > 0 && (
+      <section style="margin-top:2.5rem" aria-label="其他分类">
+        <div class="list-head">
+          <h2>其他分类</h2>
+        </div>
+        <div class="post-tags">
+          {others.map((c) => (
+            <a class="tag" href={withBase(`/categories/${c.name}/`)}>
+              {c.name}
+              <span class="cat-inline-count">{c.count}</span>
+            </a>
+          ))}
+        </div>
+      </section>
+    )
+  }
+
+  <p style="margin-top:2rem">
+    <a href={withBase('/categories/')}>← 返回全部分类</a>
+  </p>
+</Layout>
+
+<style>
+  .cat-inline-count {
+    margin-inline-start: 0.35em;
+    font-size: 0.85em;
+    opacity: 0.65;
+  }
+</style>

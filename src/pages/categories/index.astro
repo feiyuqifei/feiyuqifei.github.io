@@ -1,0 +1,94 @@
+---
+/**
+ * 分类总览页。
+ *
+ * 与标签页的分工：
+ *   标签（tags）—— 作者随手打的，一篇可以有很多个，细而杂
+ *   分类（category）—— 每篇只有一个，是文章所属的主题大类
+ * 所以分类页适合当"按主题浏览"的入口，标签页适合精确检索。
+ *
+ * 分类清单直接从已发布文章推导（见 getCategoriesWithCount），
+ * 不单独维护一份列表 —— 那样必然出现清单与文章不同步的问题。
+ */
+import Layout from '../../layouts/Layout.astro';
+import { withBase } from '../../utils/url';
+import { getPublishedPosts, getCategoriesWithCount } from '../../utils/render-posts';
+
+const posts = await getPublishedPosts();
+const categories = getCategoriesWithCount(posts);
+---
+
+<Layout
+  title="分类"
+  description="按主题浏览全部文章。"
+>
+  <header class="page-head">
+    <nav class="breadcrumb" aria-label="面包屑">
+      <a href={withBase('/')}>首页</a>
+      <span> / </span>
+      <span>分类</span>
+    </nav>
+    <h1>分类</h1>
+    <p class="page-desc">
+      按主题浏览。每篇文章只归一个分类，比标签粗，适合顺着一条线往下看。
+    </p>
+  </header>
+
+  {
+    categories.length > 0 ? (
+      <ul class="cat-list">
+        {categories.map((c) => (
+          <li>
+            <a class="cat-card" href={withBase(`/categories/${c.name}/`)}>
+              <span class="cat-name">{c.name}</span>
+              <span class="cat-count">{c.count} 篇</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    ) : (
+      <p class="empty">还没有文章，所以暂时没有分类。</p>
+    )
+  }
+
+  <p style="margin-top:2.5rem">
+    <a href={withBase('/tags/')}>按标签浏览 →</a>
+  </p>
+</Layout>
+
+<style>
+  .cat-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 0.8rem;
+  }
+
+  .cat-card {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.6rem;
+    padding: 0.9rem 1.1rem;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    transition: border-color var(--dur-fast) var(--ease-out);
+  }
+
+  .cat-card:hover {
+    border-color: var(--accent);
+  }
+
+  .cat-name {
+    font-weight: 600;
+  }
+
+  .cat-count {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+</style>

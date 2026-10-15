@@ -21,6 +21,13 @@ export interface PostCardData {
   tags: string[];
   /** 所属板块 key，用于卡片上的板块徽标 */
   section: string;
+  /**
+   * 文章分类（frontmatter 的 category）。
+   * 与 section 的区别：section 由目录决定（tech / tools），只有两个；
+   * category 是作者自己写的内容分类（网络 / 工具 / 安全 / 硬件），
+   * 更细，用于分类页与首页的主题入口。
+   */
+  category: string;
 }
 
 /**
@@ -42,7 +49,32 @@ export function toCardData(post: PostEntry): PostCardData {
     tags: post.data.tags ?? [],
     // 没有斜杠说明是根级页面（如 about），不属于任何板块
     section: index === -1 ? '' : post.id.slice(0, index),
+    category: post.data.category ?? '',
   };
+}
+
+/**
+ * 从文章集合里汇总分类及其篇数，按篇数倒序。
+ *
+ * 为什么从数据推导而不单独维护一份分类清单：
+ * 分类是作者写在 frontmatter 里的，多维护一份清单就会出现
+ * 「清单里有但没文章」或「写了文章但忘了登记」的偏差。
+ * 直接从已发布文章推导，永远不会不同步。
+ *
+ * 空字符串（未填 category 的文章）不计入。
+ */
+export function getCategoriesWithCount(
+  posts: PostEntry[]
+): { name: string; count: number }[] {
+  const tally = new Map<string, number>();
+  for (const post of posts) {
+    const name = (post.data.category ?? '').trim();
+    if (!name) continue;
+    tally.set(name, (tally.get(name) ?? 0) + 1);
+  }
+  return [...tally.entries()]
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'zh-CN'));
 }
 
 /**

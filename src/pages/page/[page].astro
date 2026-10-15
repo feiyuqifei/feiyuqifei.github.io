@@ -1,0 +1,91 @@
+---
+/**
+ * 首页第 2 页起的静态分页。
+ *
+ * 为什么单独一个文件而不是写成 [...page].astro：
+ * catch-all 会把根路径 / 也匹配进来，与 index.astro 冲突。
+ * 拆成两个文件后路由边界清晰：/ 走 index，/page/N/ 走这里。
+ * 这与板块页的 [section]/index.astro + [section]/page/[page].astro
+ * 是同一套约定，见那个文件的注释。
+ *
+ * 首页分页此前是坏的：index.astro 读 ?page=N，而 Pagination 组件
+ * 生成的是 /page/N/，两者对不上，于是这一页从未被生成、线上 404。
+ * 13 篇文章里有 3 篇因此没有任何入口能点到。
+ */
+import Layout from '../../layouts/Layout.astro';
+import PostCard from '../../components/PostCard.astro';
+import Pagination from '../../components/Pagination.astro';
+import { SITE } from '../../consts';
+import { withBase } from '../../utils/url';
+import {
+  getPublishedPosts,
+  toCardData,
+  estimateReading,
+  paginate,
+  totalPages,
+} from '../../utils/render-posts';
+
+export async function getStaticPaths() {
+  const posts = await getPublishedPosts();
+  const pages = totalPages(posts.length, SITE.postsPerPage);
+  const paths: Array<{ params: { page: string }; props: { page: number } }> = [];
+
+  // 从第 2 页开始生成，第 1 页由 index.astro 负责
+  for (let page = 2; page <= pages; page++) {
+    paths.push({ params: { page: String(page) }, props: { page } });
+  }
+  return paths;
+}
+
+interface Props {
+  page: number;
+}
+
+const { page } = Astro.props;
+const all = await getPublishedPosts();
+const pages = totalPages(all.length, SITE.postsPerPage);
+const pagePosts = paginate(all, page, SITE.postsPerPage);
+
+// 页码越界（例如手工构造 /page/99/）不生成页面
+if (pagePosts === null) {
+  return Astro.redirect('/404');
+}
+
+const cards = pagePosts.map((post) => ({
+  data: toCardData(post),
+  reading: estimateReading(post),
+}));
+---
+
+<Layout
+  title={`${SITE.name} · 第 ${page} 页`}
+  description={SITE.description}
+  noindex
+>
+  <header class="page-head">
+    <nav class="breadcrumb" aria-label="面包屑">
+      <a href={withBase('/')}>首页</a>
+      <span> / </span>
+      <span>第 {page} 页</span>
+    </nav>
+    <h1>{SITE.name}</h1>
+    <p class="page-desc">第 {page} 页，共 {pages} 页</p>
+  </header>
+
+  <ul class="post-list">
+    {
+      cards.map((card) => (
+        <PostCard
+          id={card.data.id}
+          title={card.data.title}
+          description={card.data.description}
+          pubDate={card.data.pubDate}
+          tags={card.data.tags}
+          readingLabel={card.reading}
+        />
+      ))
+    }
+  </ul>
+
+  <Pagination current={page} total={pages} base="" />
+</Layout>

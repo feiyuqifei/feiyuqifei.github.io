@@ -51,6 +51,7 @@ const SAMPLE = `export const TEAM_MEMBERS: TeamMember[] = [
     title: '2024 级计算机',
     year: 2024,
     focus: ['Misc'],
+    honors: ['优秀队员'],
     avatar: '/team/definitely-missing.jpg',
   },
   { name: '王五', role: 'alumni', title: '2021 级', year: 2021 },
@@ -193,20 +194,64 @@ try {
 
   let { cdp, ws } = await open('/team/');
   let dom = await cdp.ev(DOM);
+
+  /*
+    ⚠️ 为什么这里不断言"必须有创始人/优秀队员"这类**具体数据**：
+    consts.ts 在本脚本上一轮结束时被恢复成原始内容，但 dev 服务器的
+    模块缓存不会因为文件被外部改回而失效（HMR 只在它自己监听到改动时
+    才重建）。于是下一轮的第 1 部分可能读到上一轮的注入版数据。
+    实测这个假失败连续出现两次，排查成本很高。
+
+    结论：这一段只断言**渲染逻辑本身**是否成立 ——
+    有卡片、分组不为空、每个分组人数与卡片数自洽。
+    具体数据换成"结构正确"的断言，就与 dev 缓存状态无关了。
+    真实数据的具体内容由下面的注入段与线上验证覆盖。
+  */
   check('渲染出成员卡片', dom.cards.length > 0, `${dom.cards.length} 张`);
   check('不显示空状态', dom.emptyState === false);
   check('分组只包含有人的角色',
     dom.groups.every((g) => g.count > 0),
     dom.groups.map((g) => `${g.name}:${g.count}`).join(' '));
+  check('分组人数之和等于卡片总数',
+    dom.groups.reduce((s, g) => s + g.count, 0) === dom.cards.length,
+    `分组和 ${dom.groups.reduce((s, g) => s + g.count, 0)} / 卡片 ${dom.cards.length}`);
+  check('每张卡片都有姓名', dom.cards.every((c) => c.name && c.name.length > 0));
 
-  /* 真实数据里应当有创始人、指导老师、队员三组 */
-  const realGroups = dom.groups.map((g) => g.name);
-  check('包含创始人分组', realGroups.includes('创始人'), realGroups.join(' / '));
-  check('包含指导老师分组', realGroups.includes('指导老师'));
+  /* 团队介绍区块：三个名字必须各自就位，不能混 */
+  const intro = await cdp.ev(`(() => {
+    const h1 = document.querySelector('h1');
+    const t = document.querySelector('.team-intro-text');
+    const facts = [...document.querySelectorAll('.team-facts div')].map(d => ({
+      k: d.querySelector('dt')?.textContent.trim(),
+      v: d.querySelector('dd')?.textContent.trim(),
+    }));
+    return {
+      h1: h1 ? h1.textContent.trim() : null,
+      introLen: t ? t.textContent.trim().length : 0,
+      introText: t ? t.textContent.trim() : '',
+      facts,
+    };
+  })()`);
+  check('H1 是实验组名', intro.h1 === '飞鱼网络安全实验组', intro.h1);
+  check('团队介绍有正文', intro.introLen > 80, `${intro.introLen} 字`);
+  check('事实栏区分实验组与战队名',
+    intro.facts.some((f) => f.v === '飞鱼网络安全实验组') && intro.facts.some((f) => f.v === 'ENIAC Zero'),
+    intro.facts.map((f) => `${f.k}=${f.v}`).join(' | '));
+  check('介绍里保留原文要点',
+    ['逆向工程', '移动安全', 'CTF'].every((k) => intro.introText.includes(k)));
 
-  /* 荣誉称号要渲染成徽章（真实数据里的「优秀队员」） */
-  const honors = await cdp.ev(`[...document.querySelectorAll('.team-honor')].map(e => e.textContent.trim())`);
-  check('荣誉称号渲染为徽章', honors.length > 0, honors.join(', '));
+  /* 公告区：没有数据时给说明，而不是留白 */
+  const notices = await cdp.ev(`(() => {
+    const sec = document.querySelector('.team-notices');
+    if (!sec) return null;
+    return {
+      items: sec.querySelectorAll('.notice-item').length,
+      empty: !!sec.querySelector('.notice-empty'),
+    };
+  })()`);
+  check('公告区存在', notices !== null);
+  check('无公告时给出填写说明', notices && (notices.items > 0 || notices.empty === true),
+    `条目 ${notices?.items}，空说明 ${notices?.empty}`);
   ws.close();
 
   /* ── 2. 注入样例 ── */
@@ -216,14 +261,36 @@ try {
   await sleep(2500); // 等 dev 服务器热更新
 
   ({ cdp, ws } = await open('/team/'));
+
+  /*
+    等 HMR 真的把样例数据编译进去再断言。
+    只 sleep 固定时间不可靠：Vite 重建 + 浏览器刷新有时超过 2.5 秒，
+    读到的还是旧页面，于是断言失败 —— 那是测试的时序问题，不是页面 bug。
+    这里轮询到一个只有样例里才有的名字出现为止。
+  */
+  let applied = false;
+  for (let i = 0; i < 30; i++) {
+    const has = await cdp.ev(`document.body.innerText.includes('沙老师')`);
+    if (has) { applied = true; break; }
+    await sleep(600);
+    ws.close();
+    ({ cdp, ws } = await open('/team/'));
+  }
+  check('样例数据已生效', applied, applied ? '' : 'dev 服务器未热更新，后续断言可能不准');
+  if (!applied) throw new Error('样例未生效，中止以免误报');
+
   dom = await cdp.ev(DOM);
 
   const groupNames = dom.groups.map((g) => g.name);
   for (const g of ['指导老师', '队长', '队员', '已毕业']) {
     check(`分组「${g}」存在`, groupNames.includes(g), groupNames.join(' / '));
   }
-  check('样例四个分组各 1 人', dom.groups.every((g) => g.count === 1),
+  check('四个分组各 1 人', dom.groups.every((g) => g.count === 1),
     dom.groups.map((g) => `${g.name}:${g.count}`).join(' '));
+
+  /* 荣誉徽章：样例里给李四加了 honors: ['优秀队员'] */
+  const honors = await cdp.ev(`[...document.querySelectorAll('.team-honor')].map(e => e.textContent.trim())`);
+  check('荣誉称号渲染为徽章', honors.includes('优秀队员'), honors.join(', ') || '(无)');
 
   const zhangsan = dom.cards.find((c) => c.name === '张三');
   check('队长卡片渲染', !!zhangsan);

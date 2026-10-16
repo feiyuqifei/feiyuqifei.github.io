@@ -1,4 +1,4 @@
----
+﻿---
 /**
  * 团队成员页。
  *
@@ -21,16 +21,23 @@
  */
 import Layout from '../layouts/Layout.astro';
 import {
-  SITE,
+  TEAM_INFO,
   TEAM_MEMBERS,
   TEAM_ROLES,
+  TEAM_NOTICES,
   RECRUITMENT,
   type TeamMember,
 } from '../consts';
 import { withBase } from '../utils/url';
+import { formatDate } from '../utils/date';
 import { getPublishedPosts, type PostEntry } from '../utils/render-posts';
 
 const posts = await getPublishedPosts();
+
+/** 公告按日期倒序（新的在前） */
+const notices = [...TEAM_NOTICES].sort(
+  (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+);
 
 /** 统计每个成员在本站写了多少篇（按 author 匹配 name 或 handle） */
 function postCountFor(m: TeamMember): number {
@@ -59,7 +66,7 @@ const total = TEAM_MEMBERS.length;
 
 <Layout
   title="成员"
-  description={`${SITE.name}的团队成员：指导老师、队长、现役队员与已毕业成员。`}
+  description={`${TEAM_INFO.name}（${TEAM_INFO.school}）的团队介绍与成员：指导老师、队长、队员与已毕业成员。`}
 >
   <header class="page-head">
     <nav class="breadcrumb" aria-label="面包屑">
@@ -67,11 +74,81 @@ const total = TEAM_MEMBERS.length;
       <span> / </span>
       <span>成员</span>
     </nav>
-    <h1>成员</h1>
+    <h1>{TEAM_INFO.name}</h1>
     <p class="page-desc">
-      队伍的人和各自负责的方向。顺序是创始人、指导老师、队长、队员，已毕业的放在最后。
+      {TEAM_INFO.school}的网络安全实验组，战队名 {TEAM_INFO.teamName}。
+      下面是团队介绍、公告与成员名单。
     </p>
   </header>
+
+  {/*
+    团队介绍。
+    放在成员名单之前：访客先要知道"这是个什么团队"，再关心"有谁"。
+    写法参考了同类高校战队的团队页：先讲定位与方向，再讲参加什么比赛。
+  */}
+  <section class="team-intro" aria-label="团队介绍">
+    <h2 class="team-intro-title">团队介绍</h2>
+    <p class="team-intro-text">{TEAM_INFO.intro}</p>
+    <dl class="team-facts">
+      <div>
+        <dt>实验组</dt>
+        <dd>{TEAM_INFO.name}</dd>
+      </div>
+      <div>
+        <dt>战队名</dt>
+        <dd>{TEAM_INFO.teamName}</dd>
+      </div>
+      <div>
+        <dt>所属单位</dt>
+        <dd>{TEAM_INFO.school}</dd>
+      </div>
+    </dl>
+  </section>
+
+  {/*
+    团队公告。
+    对应同类站点的「通知公告」栏目：发布获奖报道、赛事动态这类时效内容。
+    与「荣誉历史」的分工：那边是结构化战绩（一条一个名次），
+    这边是可长可短的报道。数据为空时给说明而不是留白。
+  */}
+  <section class="team-notices" aria-label="团队公告">
+    <div class="list-head">
+      <h2>团队公告</h2>
+      {notices.length > 0 && <span class="count">{notices.length} 条</span>}
+    </div>
+
+    {
+      notices.length > 0 ? (
+        <ul class="notice-list">
+          {notices.map((n) => (
+            <li class="notice-item">
+              <div class="notice-head">
+                {n.tag && <span class="notice-tag">{n.tag}</span>}
+                <h3 class="notice-title">
+                  {n.url ? (
+                    <a href={n.url} target="_blank" rel="noopener noreferrer">{n.title}</a>
+                  ) : (
+                    n.title
+                  )}
+                </h3>
+                <time class="notice-date" datetime={n.date}>
+                  {formatDate(new Date(n.date), 'long')}
+                </time>
+              </div>
+              {n.body && <p class="notice-body">{n.body}</p>}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p class="notice-empty">
+          还没有公告。获奖报道、赛事动态这类内容写在
+          <code>src/consts.ts</code> 的 <code>TEAM_NOTICES</code> 里，
+          加一条就会出现在这里。
+        </p>
+      )
+    }
+  </section>
+
 
   {
     total === 0 ? (
@@ -243,6 +320,108 @@ const total = TEAM_MEMBERS.length;
 <style>
   .team-section {
     margin-top: 2.2rem;
+  }
+
+  /* ── 团队介绍 ── */
+  .team-intro {
+    margin-top: 0.5rem;
+    padding: 1.3rem 1.4rem;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+
+  .team-intro-title {
+    margin: 0 0 0.7rem;
+    font-size: 1.05rem;
+  }
+
+  .team-intro-text {
+    margin: 0;
+    line-height: 1.85;
+  }
+
+  /* 队伍名称与所属单位：用两列小字典，扫一眼就知道是谁 */
+  .team-facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 2rem;
+    margin: 1.1rem 0 0;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .team-facts dt {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+  }
+
+  .team-facts dd {
+    margin: 0.15rem 0 0;
+    font-weight: 600;
+  }
+
+  /* ── 团队公告 ── */
+  .team-notices {
+    margin-top: 2.4rem;
+  }
+
+  .notice-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .notice-item {
+    padding: 1rem 1.2rem;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+
+  .notice-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.5rem 0.7rem;
+  }
+
+  .notice-tag {
+    padding: 0.1rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.76rem;
+    line-height: 1.6;
+    background: color-mix(in srgb, var(--accent) 16%, transparent);
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+
+  .notice-title {
+    margin: 0;
+    font-size: 1rem;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .notice-date {
+    font-size: 0.84rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+
+  .notice-body {
+    margin: 0.6rem 0 0;
+    font-size: 0.94rem;
+    line-height: 1.8;
+  }
+
+  .notice-empty {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.94rem;
   }
 
   .team-section-desc {

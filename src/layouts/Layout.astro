@@ -7,6 +7,7 @@ import { SITE, UMAMI } from '../consts';
 import { absoluteUrl } from '../utils/url';
 import { THEME_INIT_SCRIPT } from '../scripts/theme-init';
 import { COPY_BUTTON_SCRIPT } from '../scripts/copy-code';
+import { HEADING_LINK_SCRIPT, HEADING_LINK_STYLE } from '../scripts/heading-link';
 import { SCROLL_REVEAL_SCRIPT } from '../scripts/scroll-reveal';
 import { CURSOR_BUBBLES_SCRIPT } from '../scripts/cursor-bubbles';
 import SEO from '../components/SEO.astro';
@@ -130,6 +131,14 @@ const {
       体积很小（约 1.5KB），内联反而更快。
     */}
     <script is:inline set:html={COPY_BUTTON_SCRIPT} />
+
+    {/*
+      文章标题的「复制本节链接」。
+      与代码复制按钮同样是运行时注入：Markdown 源文件不出现任何按钮标记。
+      样式也用 set:html 注入，保证全站只出现一次。
+    */}
+    <style is:inline set:html={HEADING_LINK_STYLE} />
+    <script is:inline set:html={HEADING_LINK_SCRIPT} />
 
     {/*
       滚动显现。

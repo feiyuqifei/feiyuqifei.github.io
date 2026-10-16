@@ -101,10 +101,7 @@ try {
     await sleep(300);
   }
 
-  const open = async (url, width = 1280, height = 900, jsEnabled = true) => {
-    /* 用 /json/new 建页签；禁 JS 需要新建一个带 --disable-javascript 的目标做不到，
-       所以禁 JS 的验证改用 Network.setBlockedURLs 之外的办法：
-       直接读服务器返回的 HTML 是否完整。见第 6 项。 */
+  const open = async (url, width = 1280, height = 900) => {
     const tab = await (await fetch(`http://127.0.0.1:${PORT}/json/new?${encodeURIComponent(url)}`, { method: 'PUT' })).json();
     ws = new WebSocket(tab.webSocketDebuggerUrl);
     await new Promise((r, j) => {

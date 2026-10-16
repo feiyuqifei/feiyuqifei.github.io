@@ -1,20 +1,38 @@
 ---
 /**
  * 归档页：按年份分组列出全部文章。
- * 只列标题和日期，不放摘要——归档页的价值是"一眼看全"，
+ * 只列标题和日期，不放摘要 —— 归档页的价值是"一眼看全"，
  * 加摘要反而会让页面变得很长、难以扫读。
+ *
+ * 筛选用客户端实现而不是生成筛选页面：
+ *   全站文章都在这一页上（十几篇，将来几十篇也不成问题），
+ *   筛选只是显示与隐藏，不需要请求服务端。这样筛选是瞬时的，
+ *   也不会为每个年份/板块组合生成一堆 URL。
+ *   规模再大（几百篇）才需要考虑分页式筛选。
  */
 import Layout from '../layouts/Layout.astro';
 import { withBase } from '../utils/url';
 import { formatDate } from '../utils/date';
 import { getPublishedPosts } from '../utils/render-posts';
 import { groupByYear, sectionName } from '../utils/posts';
+import { ARCHIVE_FILTER_SCRIPT } from '../scripts/archive-filter';
 
 const posts = await getPublishedPosts();
 const groups = groupByYear(posts);
+
+/** 出现过的板块，按篇数倒序，用于筛选按钮 */
+const sectionTally = new Map<string, number>();
+for (const post of posts) {
+  const s = post.id.includes('/') ? post.id.slice(0, post.id.indexOf('/')) : '';
+  if (!s) continue;
+  sectionTally.set(s, (sectionTally.get(s) ?? 0) + 1);
+}
+const sections = [...sectionTally.entries()]
+  .map(([key, count]) => ({ key, name: sectionName(key), count }))
+  .sort((a, b) => b.count - a.count);
 ---
 
-<Layout title="归档" description="按时间顺序浏览全部文章">
+<Layout title="归档" description="按时间顺序浏览全部文章，可按年份与板块筛选">
   <header class="page-head">
     <nav class="breadcrumb" aria-label="面包屑">
       <a href={withBase('/')}>首页</a>
@@ -27,37 +45,176 @@ const groups = groupByYear(posts);
     </p>
   </header>
 
-  {
-    groups.map((group) => (
-      <section class="archive-year" aria-label={`${group.year} 年`}>
-        <h2>
-          {group.year} <span style="color:var(--text-faint);font-size:.8em">
-            （{group.posts.length} 篇）
-          </span>
-        </h2>
-        <ul>
-          {group.posts.map((post) => {
-            const section = post.id.includes('/') ? post.id.slice(0, post.id.indexOf('/')) : '';
-            return (
-              <li>
-                <span class="archive-date">
-                  {formatDate(post.data.pubDate, 'short').slice(5)}
-                </span>
-                <a href={withBase(`/${post.id}/`)}>{post.data.title}</a>
-                {section && (
-                  <span style="color:var(--text-faint);font-size:.82em;margin-inline-start:auto">
-                    {sectionName(section)}
+  {/*
+    筛选控件。按钮在无 JS 时不工作，所以默认状态必须是"全部显示"——
+    这样即使脚本没加载，读者仍然能看到完整归档，不会损失内容。
+  */}
+  <div class="archive-filter" data-archive-filter hidden>
+    <div class="archive-filter-row">
+      <span class="archive-filter-label">年份</span>
+      <div class="archive-filter-chips" data-filter-group="year">
+        <button type="button" class="af-chip is-active" data-filter-value="all">
+          全部 <span class="af-count">{posts.length}</span>
+        </button>
+        {groups.map((g) => (
+          <button type="button" class="af-chip" data-filter-value={String(g.year)}>
+            {g.year} <span class="af-count">{g.posts.length}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+
+    {
+      sections.length > 1 && (
+        <div class="archive-filter-row">
+          <span class="archive-filter-label">板块</span>
+          <div class="archive-filter-chips" data-filter-group="section">
+            <button type="button" class="af-chip is-active" data-filter-value="all">
+              全部
+            </button>
+            {sections.map((s) => (
+              <button type="button" class="af-chip" data-filter-value={s.key}>
+                {s.name} <span class="af-count">{s.count}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )
+    }
+
+    <p class="archive-filter-status" data-filter-status aria-live="polite"></p>
+  </div>
+
+  <div data-archive-list>
+    {
+      groups.map((group) => (
+        <section class="archive-year" aria-label={`${group.year} 年`} data-year={group.year}>
+          <h2>
+            {group.year}{' '}
+            <span style="color:var(--text-faint);font-size:.8em">
+              （{group.posts.length} 篇）
+            </span>
+          </h2>
+          <ul>
+            {group.posts.map((post) => {
+              const section = post.id.includes('/')
+                ? post.id.slice(0, post.id.indexOf('/'))
+                : '';
+              return (
+                <li data-section={section} data-year={group.year}>
+                  <span class="archive-date">
+                    {formatDate(post.data.pubDate, 'short').slice(5)}
                   </span>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      </section>
-    ))
+                  <a href={withBase(`/${post.id}/`)}>{post.data.title}</a>
+                  {section && (
+                    <span style="color:var(--text-faint);font-size:.82em;margin-inline-start:auto">
+                      {sectionName(section)}
+                    </span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ))
+    }
+  </div>
+
+  {groups.length === 0 && <p class="empty">还没有文章。</p>}
+
+  <p class="archive-empty" data-filter-empty hidden>没有符合条件的文章。</p>
+</Layout>
+
+<script is:inline set:html={ARCHIVE_FILTER_SCRIPT} />
+
+<style>
+  .archive-filter {
+    margin-bottom: 1.8rem;
+    padding: 0.9rem 1.1rem;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
   }
 
-  {
-    groups.length === 0 && <p class="empty">还没有文章。</p>
+  .archive-filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.7rem;
   }
-</Layout>
+
+  .archive-filter-label {
+    font-size: 0.88rem;
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+
+  .archive-filter-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .af-chip {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.3rem;
+    padding: 0.26rem 0.68rem;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--bg-elevated);
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 0.88rem;
+    cursor: pointer;
+    transition:
+      border-color var(--dur-fast) var(--ease-out),
+      color var(--dur-fast) var(--ease-out);
+  }
+
+  .af-chip:hover {
+    border-color: var(--accent);
+    color: var(--text);
+  }
+
+  .af-chip.is-active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+  }
+
+  .af-chip:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .af-count {
+    font-size: 0.8em;
+    opacity: 0.7;
+  }
+
+  .archive-filter-status {
+    margin: 0;
+    font-size: 0.86rem;
+    color: var(--text-muted);
+  }
+
+  .archive-empty {
+    margin-top: 1.5rem;
+    color: var(--text-muted);
+  }
+
+  /* 筛选后为空的年份分组整段隐藏，避免留下一串空标题 */
+  .archive-year[hidden] {
+    display: none;
+  }
+
+  @media (max-width: 480px) {
+    .archive-filter {
+      padding: 0.8rem 0.85rem;
+    }
+  }
+</style>

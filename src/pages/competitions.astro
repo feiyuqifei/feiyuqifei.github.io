@@ -93,7 +93,7 @@ const recordYears = (() => {
     <h1>竞赛</h1>
     <p class="page-desc">
       两个视角：<strong>全年竞赛</strong>看有哪些比赛、什么时候报名；
-      <strong>荣誉历史</strong>是已经打完的比赛和成绩。
+      <strong>荣誉历史</strong>是竞赛队成立以来已经打完的比赛和成绩。
     </p>
   </header>
 
@@ -339,12 +339,18 @@ const recordYears = (() => {
                       {r.category && <span class="comp-badge">{r.category}</span>}
                     </div>
 
-                    {(r.rank || (r.teammates && r.teammates.length > 0)) && (
+                    {(r.rank || r.teams?.length || r.teammates?.length) && (
                       <dl class="comp-fields">
                         {r.rank && (
                           <>
-                            <dt>名次</dt>
+                            <dt>成绩</dt>
                             <dd class="is-em">{r.rank}</dd>
+                          </>
+                        )}
+                        {r.teams && r.teams.length > 0 && (
+                          <>
+                            <dt>参赛队</dt>
+                            <dd>{r.teams.join('、')}</dd>
                           </>
                         )}
                         {r.teammates && r.teammates.length > 0 && (
@@ -357,6 +363,20 @@ const recordYears = (() => {
                     )}
 
                     {r.note && <p class="comp-desc">{r.note}</p>}
+
+                    {r.writeup && (
+                      <div class="comp-writeups">
+                        <span class="comp-writeups-label">题解</span>
+                        <ul class="comp-writeups-list">
+                          <li>
+                            <a class="comp-writeup is-local" href={withBase(r.writeup.url)}>
+                              <span class="comp-writeup-title">{r.writeup.title}</span>
+                              <span class="comp-writeup-arrow" aria-hidden="true">→</span>
+                            </a>
+                          </li>
+                        </ul>
+                      </div>
+                    )}
                   </div>
 
                   {r.certificate && (

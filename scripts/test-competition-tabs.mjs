@@ -144,19 +144,36 @@ try {
     const p = document.getElementById('panel-records');
     if (!p) return null;
     const items = p.querySelectorAll('.rec-item');
-    const years = p.querySelectorAll('.comp-section-title');
+    /* 取字段的标签与值成对，便于断言"成绩"这类标签而不只是值。
+       早先只取 dd 的值，标签从「名次」改成「成绩」时测试毫无反应。 */
+    const fields = [...p.querySelectorAll('.comp-fields')].map(dl => {
+      const out = {};
+      const kids = [...dl.children];
+      for (let i = 0; i < kids.length; i++) {
+        if (kids[i].tagName === 'DT') {
+          const dd = kids[i + 1];
+          if (dd && dd.tagName === 'DD') out[kids[i].textContent.trim()] = dd.textContent.trim();
+        }
+      }
+      return out;
+    });
     return {
       text: p.textContent.replace(/\\s+/g, ' ').trim(),
       items: items.length,
-      years: [...years].map(e => e.textContent.trim()),
-      ranks: [...p.querySelectorAll('.comp-fields dd')].map(e => e.textContent.trim()),
+      years: [...p.querySelectorAll('.comp-section-title')].map(e => e.textContent.trim()),
+      fields,
     };
   })()`);
 
   if (panel && panel.items > 0) {
     check('荣誉条目已渲染', panel.items > 0, `${panel.items} 条`);
     check('按年份分组', panel.years.length > 0, panel.years.join(' / '));
-    check('名次等字段有输出', panel.ranks.length > 0, panel.ranks.join(' | '));
+    check('字段用「成绩」而不是「名次」',
+      panel.fields.some((f) => f['成绩']),
+      panel.fields.map((f) => Object.keys(f).join('+')).join(' | '));
+    check('参赛队字段能渲染多支队',
+      panel.fields.some((f) => f['参赛队'] && f['参赛队'].includes('、')),
+      panel.fields.filter((f) => f['参赛队']).map((f) => f['参赛队']).join(' / ') || '(无)');
   } else {
     const hasGuide = typeof panel?.text === 'string' && panel.text.includes('COMPETITION_RECORDS');
     check('无数据时给出填写指引', hasGuide,

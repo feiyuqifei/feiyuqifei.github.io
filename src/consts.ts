@@ -919,11 +919,17 @@ export const COMPETITIONS: CompetitionItem[] = [
 /**
  * 团队成员角色。
  *
- * 顺序即页面上的显示顺序：指导老师在最前（对外介绍时的惯例），
- * 队长其次，然后现役队员，已毕业的放最后 ——
- * 访客先关心"现在有谁"，历届属于查阅性质的内容。
+ * 顺序即页面上的显示顺序：创始人 → 指导老师 → 队长 → 队员 → 已毕业。
+ *
+ * 为什么创始人排最前：队伍介绍通常从"谁发起的"讲起，
+ * 这比指导老师和现任队长更靠前。
+ * 若同一人既是创始人又是队长，取更靠前的角色（创始人），
+ * 另一个身份写在 title 里 —— 例如 title 用「队长兼创始人」。
+ *
+ * 已毕业的放最后：访客先关心"现在有谁"，历届属于查阅性质的内容。
  */
 export const TEAM_ROLES = [
+  { key: 'founder', name: '创始人', desc: '发起并组建这支队伍的人。' },
   { key: 'advisor', name: '指导老师', desc: '负责技术方向把关与参赛事务协调。' },
   { key: 'captain', name: '队长', desc: '负责组队、赛程安排与对外联络。' },
   { key: 'member', name: '队员', desc: '' },
@@ -978,10 +984,10 @@ export interface TeamMember {
 /**
  * 团队成员清单 —— 成员页的唯一数据源。
  *
- * 目前为空：这是真人的信息，只能由团队自己填。
- * 留空时页面显示填写说明而不是空白，避免看起来像坏了。
+ * ⚠️ 这些是真人信息，只写本人愿意公开的部分。
+ * 只填 name 与 role 也能正常显示，其余字段留空不占位。
  *
- * 填写示例（取消注释并改成真实内容即可）：
+ * 填写示例：
  *   {
  *     name: '张三',
  *     role: 'captain',
@@ -999,10 +1005,21 @@ export interface TeamMember {
  *   该成员卡片上就会出现"在本站写过 N 篇文章"的入口。
  *   这不需要额外维护映射表，填 author 即可。
  */
-export const TEAM_MEMBERS: TeamMember[] = [];
+export const TEAM_MEMBERS: TeamMember[] = [
+  {
+    name: '黄光辉',
+    /*
+      创始人兼队长。角色只取一个（创始人，因为它在 TEAM_ROLES 里更靠前），
+      另一个身份写在 title 里，两个都不丢。
+    */
+    role: 'founder',
+    title: '队长兼创始人',
+  },
+];
 
 /** 页脚社交链接 —— 把 href 换成你自己的，留空字符串则不显示该图标 */
-export const SOCIALS = [  { name: 'GitHub', href: 'https://github.com/feiyuqifei', icon: 'github' },
+export const SOCIALS = [
+  { name: 'GitHub', href: 'https://github.com/feiyuqifei', icon: 'github' },
   { name: 'RSS', href: '/rss.xml', icon: 'rss' },
 ] as const;
 

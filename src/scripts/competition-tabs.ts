@@ -4,7 +4,7 @@
  * 为什么用真实 tab 语义（role=tablist/tab/tabpanel）而不是单纯的显隐：
  *   键盘和读屏软件能正确识别，不用鼠标也能切换。
  *
- * 支持 hash 深链：/competitions/#records 直接打开「历史荣誉」，
+ * 支持 hash 深链：/competitions/#records 直接打开「荣誉历史」，
  * 这样从别处引用某个视图时能直接跳过去。
  *
  * 为什么抽成独立常量：.astro 的 <script> 里写含模板字符串的 JS 会踩坑，

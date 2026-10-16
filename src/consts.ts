@@ -328,7 +328,7 @@ export const COMPETITION_GROUPS = {
 export type CompetitionGroupKey = keyof typeof COMPETITION_GROUPS;
 
 /**
- * 参赛记录（历史荣誉）条目。
+ * 参赛记录（荣誉历史）条目。
  *
  * 与 CompetitionItem 的区别：
  *   CompetitionItem  —— 「有哪些比赛可以参加」，面向未来，是全站共用的信息
@@ -371,7 +371,7 @@ export interface CompetitionRecord {
 }
 
 /**
- * 参赛记录清单 —— 竞赛页「历史荣誉」标签的唯一数据源。
+ * 参赛记录清单 —— 竞赛页「荣誉历史」标签的唯一数据源。
  *
  * 目前为空：这些是站长本人的真实经历，只能由他自己填。
  * 留空时页面会显示一段说明而不是空白，避免看起来像坏了。
@@ -388,7 +388,43 @@ export interface CompetitionRecord {
  *     note: '第一次打进线下决赛',
  *   },
  */
-export const COMPETITION_RECORDS: CompetitionRecord[] = [];
+export const COMPETITION_RECORDS: CompetitionRecord[] = [
+  {
+    year: 2026,
+    name: '信息安全与对抗技术竞赛（ISCC）',
+    /*
+      600 / 10000 是「排名 / 参赛规模」。
+      规模经官网核实：ISCC2026 简况写明「共 12700 余人报名」，
+      与站长给的 10000 量级吻合，所以这个解读成立。
+      ISCC 由北京理工大学发起，2004 年国内首创，2026 年为第 23 届。
+    */
+    rank: '600 / 10000',
+    note: 'ISCC2026（第 23 届）。官网简况显示本届线上挑战赛共 12700 余人报名，覆盖中小学生、大学生与研究生。',
+  },
+  {
+    year: 2026,
+    name: '长城杯 网络安全大赛暨京津冀蒙网络安全技能竞赛（俗称「小长城杯」）',
+    /*
+      赛事归属要写准：证书名「长城杯安全卫士」对应的是
+      京津冀蒙网络安全技能竞赛（俗称小长城杯），
+      不是 CISCN 体系下同名的「长城杯 网数智安全大赛·防护赛」。
+      本站竞赛库里这两条是分开收录的，不要混。
+    */
+    rank: '217 / 1500',
+    teammates: ['黄光辉', '廖祥裕'],
+    note: '获长城杯安全卫士证书。队长黄光辉，队员廖祥裕。',
+  },
+  {
+    year: 2026,
+    name: '学校科研项目：计算机网络安全数据防御系统',
+    /*
+      「第二作者」是身份而不是名次，所以放 award（渲染成徽章）
+      而不是 rank（会渲染成「名次 第二作者」，语义不通）。
+    */
+    award: '第二作者',
+    note: '黄光辉为第二作者。',
+  },
+];
 
 /**
  * 竞赛清单 —— 竞赛页的唯一数据源，增删改都只动这里。

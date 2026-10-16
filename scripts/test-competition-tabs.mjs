@@ -3,9 +3,9 @@
  *
  * 检查四项：
  *   1. 默认只显示「全年竞赛」，另一个面板是 hidden
- *   2. 点击「历史荣誉」能切换
+ *   2. 点击「荣誉历史」能切换
  *   3. 键盘左右方向键能切换
- *   4. #records 深链能直接打开历史荣誉
+ *   4. #records 深链能直接打开荣誉历史
  *
  * 用法: node scripts/test-competition-tabs.mjs [baseUrl]
  */
@@ -105,15 +105,15 @@ try {
   let cdp = await open(`${BASE}/competitions/`);
   let s = await cdp.ev(READ_STATE);
   check('全年竞赛默认可见', s.yearlyHidden === false, `hidden=${s.yearlyHidden}`);
-  check('历史荣誉默认隐藏', s.recordsHidden === true, `hidden=${s.recordsHidden}`);
+  check('荣誉历史默认隐藏', s.recordsHidden === true, `hidden=${s.recordsHidden}`);
   check('aria-selected 正确', s.yearlySelected === 'true' && s.recordsSelected === 'false');
 
   /* 2. 点击切换 */
-  console.log('\n=== 2. 点击「历史荣誉」 ===');
+  console.log('\n=== 2. 点击「荣誉历史」 ===');
   await cdp.ev(`document.getElementById('tab-records').click()`);
   await sleep(400);
   s = await cdp.ev(READ_STATE);
-  check('历史荣誉已显示', s.recordsHidden === false, `hidden=${s.recordsHidden}`);
+  check('荣誉历史已显示', s.recordsHidden === false, `hidden=${s.recordsHidden}`);
   check('全年竞赛已隐藏', s.yearlyHidden === true, `hidden=${s.yearlyHidden}`);
   check('aria-selected 已更新', s.recordsSelected === 'true' && s.yearlySelected === 'false');
 
@@ -132,17 +132,36 @@ try {
   ws.close();
   cdp = await open(`${BASE}/competitions/#records`);
   s = await cdp.ev(READ_STATE);
-  check('深链直接打开历史荣誉', s.recordsHidden === false && s.recordsSelected === 'true',
+  check('深链直接打开荣誉历史', s.recordsHidden === false && s.recordsSelected === 'true',
     `recordsHidden=${s.recordsHidden} selected=${s.recordsSelected}`);
 
-  /* 5. 空状态说明是否给出 */
-  console.log('\n=== 5. 空状态 ===');
-  const emptyText = await cdp.ev(`(() => {
+  /* 5. 荣誉历史面板的内容
+     注意：这一段最初断言"显示空状态填写指引"，那是 COMPETITION_RECORDS
+     还为空时写的。填入真实荣誉后该断言变成假失败（测的是过时前提）。
+     现在改成：有数据就验证条目渲染，没数据才验证空状态指引。 */
+  console.log('\n=== 5. 荣誉历史面板内容 ===');
+  const panel = await cdp.ev(`(() => {
     const p = document.getElementById('panel-records');
-    return p ? p.textContent.replace(/\\s+/g, ' ').trim().slice(0, 120) : null;
+    if (!p) return null;
+    const items = p.querySelectorAll('.rec-item');
+    const years = p.querySelectorAll('.comp-section-title');
+    return {
+      text: p.textContent.replace(/\\s+/g, ' ').trim(),
+      items: items.length,
+      years: [...years].map(e => e.textContent.trim()),
+      ranks: [...p.querySelectorAll('.comp-fields dd')].map(e => e.textContent.trim()),
+    };
   })()`);
-  const hasGuide = typeof emptyText === 'string' && emptyText.includes('COMPETITION_RECORDS');
-  check('空状态给出填写指引', hasGuide, hasGuide ? '' : `实际内容: ${emptyText}`);
+
+  if (panel && panel.items > 0) {
+    check('荣誉条目已渲染', panel.items > 0, `${panel.items} 条`);
+    check('按年份分组', panel.years.length > 0, panel.years.join(' / '));
+    check('名次等字段有输出', panel.ranks.length > 0, panel.ranks.join(' | '));
+  } else {
+    const hasGuide = typeof panel?.text === 'string' && panel.text.includes('COMPETITION_RECORDS');
+    check('无数据时给出填写指引', hasGuide,
+      hasGuide ? '' : `实际内容: ${String(panel?.text).slice(0, 120)}`);
+  }
 } finally {
   try { ws?.close(); } catch { /* 忽略 */ }
   try { proc.kill(); } catch { /* 忽略 */ }

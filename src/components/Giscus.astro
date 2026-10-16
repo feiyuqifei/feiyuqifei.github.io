@@ -103,10 +103,14 @@ const ready = GISCUS.enabled && GISCUS.repoId !== '' && GISCUS.categoryId !== ''
         </script>
       </>
     ) : (
-      <p class="comments-placeholder">
-        评论区尚未启用。需要在 <code>src/consts.ts</code> 中填写 Giscus 配置
-        （仓库需开启 Discussions 并安装 Giscus App）。
-      </p>
+      /*
+        评论未启用时的兜底文案。
+        写给访客看，不暴露实现细节 —— 早先这里写的是
+        「需要在 src/consts.ts 中填写 Giscus 配置（仓库需开启 Discussions
+        并安装 Giscus App）」，那是给维护者的提示。
+        顺带说明：当前 GISCUS.enabled 为 true，所以这段实际不会渲染。
+      */
+      <p class="comments-placeholder">评论功能暂未开放。</p>
     )
   }
 </section>

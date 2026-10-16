@@ -138,12 +138,14 @@ const recordYears = (() => {
   >
   {
     sections.length === 0 ? (
+      /*
+        空状态文案写给访客看，不暴露实现细节。
+        早先这里写的是「数据在 src/consts.ts 的 COMPETITIONS 里，加一条就会
+        出现在这里」—— 那是给维护者看的提示，访客看到只会困惑。
+      */
       <div class="empty-state">
         <p class="empty-title">还没有收录竞赛</p>
-        <p>
-          数据在 <code>src/consts.ts</code> 的 <code>COMPETITIONS</code> 里，
-          加一条就会出现在这里。
-        </p>
+        <p>竞赛信息正在整理中，稍后再来看看。</p>
       </div>
     ) : (
       sections.map((section) => (
@@ -317,15 +319,7 @@ const recordYears = (() => {
       recordYears.length === 0 ? (
         <div class="empty-state">
           <p class="empty-title">还没有记录参赛成绩</p>
-          <p>
-            这里放的是已经打完的比赛和拿到的成绩，属于个人经历，
-            只能由站长自己填。数据在 <code>src/consts.ts</code> 的
-            <code>COMPETITION_RECORDS</code> 里，字段已备好：
-            年份、赛事名、奖项、组别、名次、队友、证书链接、备注。
-          </p>
-          <p class="empty-sub">
-            留空是有意的。没把握的成绩宁可先不写，也不要填一个记不清的数字。
-          </p>
+          <p>成绩还在整理中，稍后再来看看。</p>
         </div>
       ) : (
         recordYears.map((group) => (

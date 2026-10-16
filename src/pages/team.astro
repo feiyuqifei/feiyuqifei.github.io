@@ -1,4 +1,4 @@
-﻿---
+---
 /**
  * 团队成员页。
  *
@@ -140,11 +140,7 @@ const total = TEAM_MEMBERS.length;
           ))}
         </ul>
       ) : (
-        <p class="notice-empty">
-          还没有公告。获奖报道、赛事动态这类内容写在
-          <code>src/consts.ts</code> 的 <code>TEAM_NOTICES</code> 里，
-          加一条就会出现在这里。
-        </p>
+        <p class="notice-empty">暂时还没有公告。</p>
       )
     }
   </section>
@@ -153,17 +149,8 @@ const total = TEAM_MEMBERS.length;
   {
     total === 0 ? (
       <div class="empty-state">
-        <p class="empty-title">还没有添加成员</p>
-        <p>
-          这里放指导老师、队长、队员与已毕业成员的信息，属于真人资料，
-          只能由团队自己填。数据在 <code>src/consts.ts</code> 的{' '}
-          <code>TEAM_MEMBERS</code> 里，字段已备好：姓名、角色、代号、身份、
-          届次、擅长方向、自我介绍、头像、相关链接。
-        </p>
-        <p class="empty-sub">
-          只填姓名和角色也能显示。头像留空会显示姓名首字，不会出现破图；
-          其余字段留空不占位，不必为了凑格式写自己不想公开的信息。
-        </p>
+        <p class="empty-title">成员信息整理中</p>
+        <p>名单还没放上来，稍后再来看看。</p>
       </div>
     ) : (
       groups.map((group) => (

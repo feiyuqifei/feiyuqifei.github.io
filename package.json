@@ -23,6 +23,7 @@
     "check:style": "node scripts/check-style.mjs",
     "check:mobile": "node scripts/check-mobile.mjs",
     "check:writeups": "node scripts/check-writeup-links.mjs",
+    "check:fixtures": "node scripts/check-no-fixtures.mjs",
     "deploy:zip": "python scripts/make-deploy-zip.py",
     "check:workflow": "python scripts/check-workflow.py",
     "assets": "python scripts/make-assets.py",

@@ -1148,30 +1148,29 @@ export interface TeamMember {
  */
 export const TEAM_MEMBERS: TeamMember[] = [
   {
-    name: '沙老师',
+    name: '黄光辉',
+    /*
+      创始人兼队长。角色只取一个（创始人，因为它在 TEAM_ROLES 里更靠前），
+      另一个身份写在 title 里，两个都不丢。
+    */
+    role: 'founder',
+    title: '队长兼创始人',
+  },
+  {
+    name: '黄敏修',
     role: 'advisor',
-    title: '信息安全系教授',
-    bio: '负责方向把关。',
+    title: '指导老师',
   },
   {
-    name: '张三',
-    role: 'captain',
-    handle: 'ENIAC',
-    title: '2023 级网络工程',
-    year: 2023,
-    focus: ['网络工程', 'Kali'],
-    bio: '负责 Web 方向。',
-    links: [{ label: 'GitHub', href: 'https://github.com/example' }],
-  },
-  {
-    name: '李四',
+    name: '廖祥裕',
+    /*
+      「优秀队员」写在 honors 而不是 role：
+      他仍然是队员，荣誉是评价不是角色。
+      放进 role 会造出一个只有一人的「优秀队员」分组。
+    */
     role: 'member',
-    title: '2024 级计算机',
-    year: 2024,
-    focus: ['Misc'],
-    avatar: '/team/definitely-missing.jpg',
+    honors: ['优秀队员'],
   },
-  { name: '王五', role: 'alumni', title: '2021 级', year: 2021 },
 ];
 
 /**

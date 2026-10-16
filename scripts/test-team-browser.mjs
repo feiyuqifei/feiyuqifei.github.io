@@ -25,6 +25,32 @@ const NODE = process.execPath;
 const CHROME = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
 const PORT = 9380;
 
+/*
+  ⚠️ 动手前先确认源码里没有残留的样例数据。
+
+  为什么必须查（这是真实事故）：
+    这个脚本通过「启动时读原文 → 结束时写回」来恢复源文件。
+    如果上一次运行被中断（Ctrl+C、超时、异常没走到 finally），
+    源文件里就留着样例；下一次运行时读到的"原文"就是样例，
+    于是样例被当成真实数据固化、提交、部署上线。
+    这次真的发生了：三位真实成员被替换成样例里的
+    沙老师/张三/李四/王五，site 上线后才发现。
+
+  所以：**已污染就直接退出，绝不在污染状态上继续操作。**
+  先跑 node scripts/check-no-fixtures.mjs 看清情况，再手工恢复。
+*/
+{
+  const { execFileSync } = await import('node:child_process');
+  try {
+    execFileSync(NODE, [join(HERE, 'check-no-fixtures.mjs')], { cwd: ROOT, stdio: 'pipe' });
+  } catch {
+    console.error('\n  [中止] src/consts.ts 里已经混着测试样例数据。');
+    console.error('         如果现在继续，脚本会把这份样例当成"原文"写回去，');
+    console.error('         等于把假数据固化。请先恢复真实数据再跑。\n');
+    process.exit(1);
+  }
+}
+
 const ORIGINAL = readFileSync(CONSTS, 'utf8');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -350,7 +376,35 @@ try {
 }
 
 const failed = results.filter((r) => !r.pass).length;
-const intact = readFileSync(CONSTS, 'utf8') === ORIGINAL;
-console.log(`\nconsts.ts 已还原：${intact ? '是' : '否 !!'}`);
+
+/*
+  还原校验要用**两种**判据，缺一不可：
+    1. 文件内容与内存里的 ORIGINAL 一致
+    2. 文件里不含样例数据的特征名
+  为什么不能只比内存副本：如果 ORIGINAL 本身就是被污染的
+  （上次中断留下的样例），第 1 条会"通过"而实际是错的。
+  第 2 条是独立的物理检查，能兜住这种情况。
+*/
+const now = readFileSync(CONSTS, 'utf8');
+const matchesOriginal = now === ORIGINAL;
+const codeOnly = now
+  .split('\n')
+  .filter((l) => {
+    const t = l.trim();
+    return !(t.startsWith('*') || t.startsWith('/*') || t.startsWith('//'));
+  })
+  .join('\n');
+const noFixture = !['沙老师', '王五', 'definitely-missing.jpg'].some((n) => codeOnly.includes(n));
+
+console.log(`\nconsts.ts 与内存副本一致：${matchesOriginal ? '是' : '否 !!'}`);
+console.log(`consts.ts 无样例数据残留：${noFixture ? '是' : '否 !!'}`);
 console.log(`结果：${results.length - failed} / ${results.length} 项通过`);
-if (failed > 0 || !intact) process.exitCode = 1;
+
+if (failed > 0 || !matchesOriginal || !noFixture) {
+  if (!noFixture) {
+    console.error('\n  [严重] 源文件里残留了测试样例数据，请立即恢复后再提交：');
+    console.error('    node scripts/check-no-fixtures.mjs   # 查看位置');
+    console.error('    git show <干净的提交>:src/consts.ts > src/consts.ts');
+  }
+  process.exitCode = 1;
+}

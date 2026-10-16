@@ -83,6 +83,17 @@ class Cdp {
   }
 }
 
+/* 用正则替换整个 TEAM_MEMBERS 数组字面量。
+   注意不能用 `= [];` 这种空数组精确匹配 —— 数组里已经有真实成员后
+   就匹配不到了（这个脚本就这么坏过一次）。
+   这里匹配 `export const TEAM_MEMBERS: TeamMember[] = [` 到与之配对的 `];`。 */
+const DECL_RE = /export const TEAM_MEMBERS: TeamMember\[\] = \[[\s\S]*?\n\];/;
+
+function withSample(src) {
+  if (!DECL_RE.test(src)) throw new Error('没能定位 TEAM_MEMBERS 声明');
+  return src.replace(DECL_RE, SAMPLE);
+}
+
 const results = [];
 const check = (name, pass, detail) => {
   results.push({ name, pass });
@@ -123,14 +134,13 @@ const DOM = `(() => {
 
 try {
   /* ── 1. 空状态 ── */
-  console.log('=== 1. 无成员时的空状态（浏览器 DOM） ===');
-
+  console.log('=== 1. 真实数据的渲染 ===');
   /*
-    连已经跑着的 dev 服务器，而不是自己再起一个。
-    原因：4321 上通常已经有一个实例（项目约定用 astro dev --background），
-    再起一个时 Vite 会另选端口，而那个端口探测不到 ——
-    结果是测试连到了旧实例，读到的 DOM 与刚改的源码对不上，
-    报出一堆假失败。这里先探测可用端口，找不到就自己起一个。
+    注意：这个测试最初假设 TEAM_MEMBERS 是空的，所以断言"显示空状态"。
+    等数据里有了真实成员后，那两条断言就变成了假失败 ——
+    它们测的是过时的前提，不是 bug。
+    现在改成：先验证真实成员按角色分组渲染，
+    再用注入的样例验证空状态与扩展字段（届次、方向、已毕业等）。
   */
   const CANDIDATE_PORTS = [4321, 4322, 4323, 4399];
   let devPort = null;
@@ -183,26 +193,36 @@ try {
 
   let { cdp, ws } = await open('/team/');
   let dom = await cdp.ev(DOM);
-  check('空数据时显示空状态', dom.emptyState === true);
-  check('空数据时没有成员卡片', dom.cards.length === 0, `${dom.cards.length} 张`);
+  check('渲染出成员卡片', dom.cards.length > 0, `${dom.cards.length} 张`);
+  check('不显示空状态', dom.emptyState === false);
+  check('分组只包含有人的角色',
+    dom.groups.every((g) => g.count > 0),
+    dom.groups.map((g) => `${g.name}:${g.count}`).join(' '));
+
+  /* 真实数据里应当有创始人、指导老师、队员三组 */
+  const realGroups = dom.groups.map((g) => g.name);
+  check('包含创始人分组', realGroups.includes('创始人'), realGroups.join(' / '));
+  check('包含指导老师分组', realGroups.includes('指导老师'));
+
+  /* 荣誉称号要渲染成徽章（真实数据里的「优秀队员」） */
+  const honors = await cdp.ev(`[...document.querySelectorAll('.team-honor')].map(e => e.textContent.trim())`);
+  check('荣誉称号渲染为徽章', honors.length > 0, honors.join(', '));
   ws.close();
 
   /* ── 2. 注入样例 ── */
-  console.log('\n=== 2. 注入样例成员后 ===');
-  const injected = ORIGINAL.replace(/export const TEAM_MEMBERS: TeamMember\[\] = \[\];/, SAMPLE);
-  if (injected === ORIGINAL) throw new Error('没能定位 TEAM_MEMBERS 声明');
+  console.log('\n=== 2. 注入样例成员（覆盖届次/方向/已毕业等真实数据没有的字段） ===');
+  const injected = withSample(ORIGINAL);
   writeFileSync(CONSTS, injected, 'utf8');
   await sleep(2500); // 等 dev 服务器热更新
 
   ({ cdp, ws } = await open('/team/'));
   dom = await cdp.ev(DOM);
 
-  check('空状态消失', dom.emptyState === false);
   const groupNames = dom.groups.map((g) => g.name);
   for (const g of ['指导老师', '队长', '队员', '已毕业']) {
     check(`分组「${g}」存在`, groupNames.includes(g), groupNames.join(' / '));
   }
-  check('四个分组各 1 人', dom.groups.every((g) => g.count === 1),
+  check('样例四个分组各 1 人', dom.groups.every((g) => g.count === 1),
     dom.groups.map((g) => `${g.name}:${g.count}`).join(' '));
 
   const zhangsan = dom.cards.find((c) => c.name === '张三');

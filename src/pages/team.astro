@@ -68,7 +68,7 @@ const total = TEAM_MEMBERS.length;
     </nav>
     <h1>成员</h1>
     <p class="page-desc">
-      队伍的人和各自负责的方向。指导老师在前，然后队长、队员，已毕业的放在最后。
+      队伍的人和各自负责的方向。顺序是创始人、指导老师、队长、队员，已毕业的放在最后。
     </p>
   </header>
 
@@ -126,6 +126,13 @@ const total = TEAM_MEMBERS.length;
                         {m.title && m.year && <span class="team-meta-sep">·</span>}
                         {m.year && <span>{m.year} 届</span>}
                       </p>
+                      {m.honors && m.honors.length > 0 && (
+                        <p class="team-honors">
+                          {m.honors.map((h) => (
+                            <span class="team-honor">{h}</span>
+                          ))}
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -266,6 +273,24 @@ const total = TEAM_MEMBERS.length;
   .team-meta-sep {
     margin-inline: 0.3rem;
     opacity: 0.6;
+  }
+
+  /* 荣誉称号：小徽章，用强调色与普通身份文字区分开 */
+  .team-honors {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin: 0.35rem 0 0;
+  }
+
+  .team-honor {
+    display: inline-block;
+    padding: 0.1rem 0.45rem;
+    border-radius: 999px;
+    font-size: 0.76rem;
+    line-height: 1.5;
+    background: color-mix(in srgb, var(--accent) 16%, transparent);
+    color: var(--accent);
   }
 
   .team-focus {

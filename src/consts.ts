@@ -1001,6 +1001,15 @@ export interface TeamMember {
    * 点「Misc」就能直接看到该方向的题解与工具文章。
    */
   focus?: string[];
+  /**
+   * 荣誉称号，例如 ['优秀队员', '最佳新人']。
+   *
+   * 为什么与 role 分开：role 决定归到哪一组，是**结构**；
+   * 荣誉是**评价**，一个人仍是队员，只是拿了称号。
+   * 把「优秀队员」当角色会让它变成一个只有一人的分组，
+   * 既不像角色也不像荣誉。放在这里则能和届次、身份并列展示。
+   */
+  honors?: string[];
   /** 两三句自我介绍 */
   bio?: string;
   /** 头像，放 public/team/ 下。留空则显示姓名首字占位 */
@@ -1042,6 +1051,21 @@ export const TEAM_MEMBERS: TeamMember[] = [
     */
     role: 'founder',
     title: '队长兼创始人',
+  },
+  {
+    name: '黄敏修',
+    role: 'advisor',
+    title: '指导老师',
+  },
+  {
+    name: '廖祥裕',
+    /*
+      「优秀队员」写在 honors 而不是 role：
+      他仍然是队员，荣誉是评价不是角色。
+      放进 role 会造出一个只有一人的「优秀队员」分组。
+    */
+    role: 'member',
+    honors: ['优秀队员'],
   },
 ];
 

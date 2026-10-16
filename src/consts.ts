@@ -1069,6 +1069,32 @@ export const TEAM_MEMBERS: TeamMember[] = [
   },
 ];
 
+/**
+ * 招新信息。
+ *
+ * 为什么留成一个独立对象而不是写死在页面里：
+ *   招新是有时效的 —— 开放期、考核方式、联系方式每年都会变。
+ *   独立出来以后，改招新只需动这几行，不会碰到页面结构。
+ *
+ * ⚠️ 默认 enabled: false。
+ *   没有真实招新通道时不要把这段显示出来 ——
+ *   挂一个点不动的「加入我们」比不挂更糟。
+ *   要开放时把 enabled 改成 true 并填上真实内容。
+ */
+export const RECRUITMENT = {
+  enabled: false,
+  /** 一句话说明现在招不招、招什么方向 */
+  headline: '',
+  /** 招收方向，例如 ['Web', 'Misc', '逆向'] */
+  tracks: [] as string[],
+  /** 面向谁，例如「本校在读学生，年级专业不限」 */
+  who: '',
+  /** 怎么加入：流程说明，一行为一步 */
+  steps: [] as string[],
+  /** 联系方式，例如 [{ label: '邮箱', value: 'xxx@example.com' }] */
+  contacts: [] as { label: string; value: string; href?: string }[],
+};
+
 /** 页脚社交链接 —— 把 href 换成你自己的，留空字符串则不显示该图标 */
 export const SOCIALS = [
   { name: 'GitHub', href: 'https://github.com/feiyuqifei', icon: 'github' },

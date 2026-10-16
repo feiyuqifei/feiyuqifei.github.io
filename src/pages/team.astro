@@ -24,6 +24,7 @@ import {
   SITE,
   TEAM_MEMBERS,
   TEAM_ROLES,
+  RECRUITMENT,
   type TeamMember,
 } from '../consts';
 import { withBase } from '../utils/url';
@@ -166,6 +167,57 @@ const total = TEAM_MEMBERS.length;
           </ul>
         </section>
       ))
+    )
+  }
+
+  {/*
+    招新信息。
+    只在 RECRUITMENT.enabled 为 true 时渲染 ——
+    没有真实招新通道时挂一个点不动的「加入我们」比不挂更糟。
+  */}
+  {
+    RECRUITMENT.enabled && (
+      <section class="team-section recruit" aria-label="加入我们">
+        <div class="list-head">
+          <h2>加入我们</h2>
+        </div>
+        {RECRUITMENT.headline && <p class="recruit-headline">{RECRUITMENT.headline}</p>}
+
+        {RECRUITMENT.tracks.length > 0 && (
+          <div class="post-tags recruit-tracks">
+            {RECRUITMENT.tracks.map((t) => (
+              <span class="tag">#{t}</span>
+            ))}
+          </div>
+        )}
+
+        {RECRUITMENT.who && <p class="recruit-who">面向：{RECRUITMENT.who}</p>}
+
+        {RECRUITMENT.steps.length > 0 && (
+          <ol class="recruit-steps">
+            {RECRUITMENT.steps.map((s) => (
+              <li>{s}</li>
+            ))}
+          </ol>
+        )}
+
+        {RECRUITMENT.contacts.length > 0 && (
+          <dl class="recruit-contacts">
+            {RECRUITMENT.contacts.map((c) => (
+              <div>
+                <dt>{c.label}</dt>
+                <dd>
+                  {c.href ? (
+                    <a href={c.href} target="_blank" rel="noopener noreferrer">{c.value}</a>
+                  ) : (
+                    c.value
+                  )}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        )}
+      </section>
     )
   }
 </Layout>
@@ -320,5 +372,43 @@ const total = TEAM_MEMBERS.length;
     margin-top: 0.6rem;
     font-size: 0.9rem;
     color: var(--text-muted);
+  }
+
+  /* ── 招新区块（仅在 RECRUITMENT.enabled 时渲染） ── */
+  .recruit-headline {
+    margin: 0.3rem 0 0.9rem;
+    font-size: 1.02rem;
+  }
+
+  .recruit-tracks {
+    margin-bottom: 0.8rem;
+  }
+
+  .recruit-who {
+    margin: 0 0 0.9rem;
+    color: var(--text-muted);
+    font-size: 0.94rem;
+  }
+
+  .recruit-steps {
+    margin: 0 0 1.1rem;
+    padding-inline-start: 1.3rem;
+    line-height: 1.8;
+  }
+
+  .recruit-contacts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem 1.6rem;
+    margin: 0;
+  }
+
+  .recruit-contacts dt {
+    font-size: 0.84rem;
+    color: var(--text-muted);
+  }
+
+  .recruit-contacts dd {
+    margin: 0.1rem 0 0;
   }
 </style>

@@ -348,6 +348,20 @@
   &:hover {
     transform: translateY(-1px);
   }
+
+  /*
+    不可点的标签：视频区里有些标签没有对应的标签页
+    （/tags/<tag>/ 只由文章生成，视频标签若没被任何文章用过就没有页面）。
+    这类渲染成 span，样式上不做悬停反馈，让读者一眼看出它不是链接。
+  */
+  &.is-plain {
+    cursor: default;
+    opacity: 0.75;
+
+    &:hover {
+      transform: none;
+    }
+  }
 }
 
 /* Logo：悬停时"鱼"轻微上浮，呼应跃出水面的意象 */

@@ -176,7 +176,17 @@ export interface VideoItem {
  * ⚠️ 用平台嵌入时记得关掉自动播放与弹幕，否则读者一进页面就被打扰。
  */
 export const VIDEOS: VideoItem[] = [
-  // ── 已发布的视频追加到这里 ──
+  /*
+    ── 已发布的视频 ──
+    数组顺序即页面显示顺序（videos.astro 直接 filter 后 map，不排序）。
+    所以这里刻意按「从装系统到上手命令」的学习顺序排，
+    而不是按发布时间倒序 —— 视频区目前是一个系列，顺序比新旧更重要。
+
+    ⚠️ 视频标签的限制：/tags/<tag>/ 只由**文章**生成，
+    所以视频用了没被任何文章用过的标签会指向 404。
+    videos.astro 已做处理：没有页面的标签渲染成纯文字不链接，
+    但填的时候仍应尽量用已有标签（见标签页列表）。
+  */
   {
     status: 'published',
     id: 'kali-locale',
@@ -187,6 +197,26 @@ export const VIDEOS: VideoItem[] = [
     duration: '2:16',
     date: '2026-10-15',
     tags: ['Kali', 'Linux', '虚拟机'],
+  },
+  {
+    status: 'published',
+    id: 'kali-cmd-1',
+    title: 'Kali 基础命令（一）',
+    desc: 'Kali 命令行入门第一讲，面向刚接触 Linux 的新手。系统装好之后，先把终端里最常用的那批操作过一遍。',
+    embed: 'https://player.bilibili.com/player.html?bvid=BV19cJC6FEHL&autoplay=0&danmaku=0',
+    duration: '11:52',
+    date: '2026-10-15',
+    tags: ['Kali', '基础', '虚拟机'],
+  },
+  {
+    status: 'published',
+    id: 'kali-cmd-2',
+    title: 'Kali 基础命令（二）',
+    desc: '接上一讲，继续过命令行里常用的那批操作。两讲连起来看，日常排查和练习基本够用。',
+    embed: 'https://player.bilibili.com/player.html?bvid=BV1BKJb68Ep3&autoplay=0&danmaku=0',
+    duration: '11:05',
+    date: '2026-10-16',
+    tags: ['Kali', '基础', '虚拟机'],
   },
 
   // ── 计划中的选题 ──

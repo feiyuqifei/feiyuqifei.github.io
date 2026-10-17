@@ -217,12 +217,20 @@ async function main() {
     check('四个 busuanzi ID 俱在', stats.hasUv && stats.hasPv);
 
     /*
-     * 等数字回来。超时给到 40 秒：
-     * Vercount 首次加载实测约 5~16 秒（无缓存、网络抖动时更久），
-     * 之前用 15 秒导致过一次假失败 —— 数字其实来了，只是比超时晚。
+     * 等数字回来。
+     *
+     * 为什么要区分「外部服务慢」和「我们的代码坏了」：
+     * Vercount 是第三方服务，实测响应时间波动很大
+     * （某次 vercount.one/js 3.2 秒、events.vercount.one 单次 9.4 秒）。
+     * 早先这里只等 15 秒、后来又加到 40 秒，仍然会偶发失败 ——
+     * 而那种失败**不是站点的问题**，是第三方慢。
+     * 一个因为外人慢就红的测试会让人不再相信测试结果，
+     * 所以现在：等不到数字时先直接探测服务本身，
+     *   - 服务也连不上/很慢 → 判为「跳过」，并写明原因
+     *   - 服务正常但页面没更新 → 那才是我们的 bug，判失败
      */
     let nums = null;
-    for (let i = 0; i < 80; i++) {
+    for (let i = 0; i < 120; i++) {
       nums = await cdp.evaluate(`(() => {
         const line = document.querySelector('[data-site-stats]');
         const uv = document.getElementById('busuanzi_value_site_uv');
@@ -230,12 +238,40 @@ async function main() {
         const t = (el) => (el ? el.textContent.trim() : '');
         return { hidden: line ? line.hidden : null, uv: t(uv), pv: t(pv) };
       })()`);
+      /* 统计行被脚本移除（超时放弃）也算这一轮结束，不再空转 60 秒 */
+      const gone = await cdp.evaluate(`!document.querySelector('[data-site-stats]')`);
+      if (gone) { nums.gone = true; break; }
       if (!nums.hidden && /[0-9]/.test(nums.uv + nums.pv)) break;
       await sleep(500);
     }
     console.log('    ', JSON.stringify(nums));
     const hasNum = /[0-9]/.test(nums.uv + nums.pv);
-    check('拿到了真实数字', hasNum === true, `UV=${nums.uv} PV=${nums.pv}`);
+
+    if (hasNum) {
+      check('拿到了真实数字', true, `UV=${nums.uv} PV=${nums.pv}`);
+    } else {
+      /* 没数字：先确认是不是外部服务的问题 */
+      let serviceOk = false;
+      let detail = '';
+      try {
+        const r = await fetch(
+          'https://events.vercount.one/api/v2/log?jsonp=1&url=https%3A%2F%2Ffeiyuqifei.github.io%2F&title=probe',
+          { signal: AbortSignal.timeout(20000) }
+        );
+        const text = await r.text();
+        serviceOk = r.ok && /success/i.test(text);
+        detail = `HTTP ${r.status}`;
+      } catch (e) {
+        detail = `请求失败: ${e.message}`;
+      }
+      if (serviceOk) {
+        /* 服务是好的，数字却没到页面 —— 这是真的问题 */
+        check('拿到了真实数字', false, `服务正常（${detail}）但页面无数字，UV=${nums.uv} PV=${nums.pv}`);
+      } else {
+        console.log(`     [跳过] Vercount 当前不可用（${detail}），数字类断言不判失败`);
+        results.push({ name: '拿到了真实数字（因外部服务不可用跳过）', pass: true, skipped: true });
+      }
+    }
     check('拿到数字后统计行显示出来', hasNum ? nums.hidden === false : true, `hidden=${nums.hidden}`);
     /* hidden 一旦移除就不应再回去 —— 避免闪烁或反复显隐 */
     await sleep(1500);

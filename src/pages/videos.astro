@@ -17,10 +17,23 @@ import Video from '../components/Video.astro';
 import { SITE, VIDEOS, type VideoItem } from '../consts';
 import { withBase } from '../utils/url';
 import { formatDate } from '../utils/date';
+import { getPublishedPosts } from '../utils/render-posts';
+import { getAllTags } from '../utils/posts';
 
 const all: VideoItem[] = VIDEOS;
 const published = all.filter((v) => v.status === 'published');
 const planned = all.filter((v) => v.status === 'planned');
+
+/*
+  标签页是否存在，只取决于**文章**有没有用这个标签
+  （/tags/<tag>/ 由 [tag].astro 从 posts 生成）。
+  视频的标签如果没被任何文章用过，链接指向的就是 404 ——
+  实测站上已经出现过一个：视频用了「Linux」标签，
+  但没有任何文章用它，/tags/Linux/ 是 404。
+  所以这里只把「有页面的标签」渲染成链接，其余渲染成纯文字，
+  避免视频区成为死链来源。
+*/
+const postTags = new Set(getAllTags(await getPublishedPosts()));
 ---
 
 <Layout
@@ -61,9 +74,14 @@ const planned = all.filter((v) => v.status === 'planned');
             />
             <p class="video-desc">{v.desc}</p>
             <div class="post-tags">
-              {v.tags.map((tag) => (
-                <a class="tag" href={withBase(`/tags/${tag}/`)}>#{tag}</a>
-              ))}
+              {v.tags.map((tag) =>
+                postTags.has(tag) ? (
+                  <a class="tag" href={withBase(`/tags/${tag}/`)}>#{tag}</a>
+                ) : (
+                  /* 没有对应标签页，渲染成纯文字，不给死链 */
+                  <span class="tag is-plain">#{tag}</span>
+                )
+              )}
             </div>
           </article>
         ))}
@@ -96,9 +114,13 @@ const planned = all.filter((v) => v.status === 'planned');
               </div>
               <p class="plan-desc">{v.desc}</p>
               <div class="post-tags">
-                {v.tags.map((tag) => (
-                  <a class="tag" href={withBase(`/tags/${tag}/`)}>#{tag}</a>
-                ))}
+                {v.tags.map((tag) =>
+                  postTags.has(tag) ? (
+                    <a class="tag" href={withBase(`/tags/${tag}/`)}>#{tag}</a>
+                  ) : (
+                    <span class="tag is-plain">#{tag}</span>
+                  )
+                )}
               </div>
             </li>
           ))}

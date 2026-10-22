@@ -1,0 +1,322 @@
+---
+/**
+ * 首页「课堂排行榜」。
+ *
+ * 数据来自 src/data/lime-leaderboard.json，由 scripts/sync-lime-board.mjs
+ * 从 LimeCTF 平台的教师导出接口生成。首页是构建时读这份 JSON 的，
+ * 所以同步完必须 push，Actions 重新构建后才会更新。
+ *
+ * 刻意不做成实时：
+ *   GitHub Pages 是纯静态托管，拿不到教室局域网里的平台；
+ *   要真实时只能把平台暴露到公网（隧道），安全代价太大。
+ *   这里定位是「课堂快照」，页脚标了更新时间，不误导读者。
+ */
+import { withBase } from '../utils/url';
+import board from '../data/lime-leaderboard.json';
+
+interface Player {
+  rank: number;
+  nickname: string;
+  username: string;
+  score: number;
+  solved: number;
+  firstBloods: number;
+  lastSolvedAt: string | null;
+}
+
+const players: Player[] = Array.isArray(board.players) ? board.players : [];
+const top = players.slice(0, 5);
+const totalSolves = players.reduce((n, p) => n + p.solved, 0);
+
+/** 把 ISO 时间按北京时间显示成 2026-10-22 14:59，避免服务器时区影响。 */
+function formatStamp(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  const parts = new Intl.DateTimeFormat('zh-CN', {
+    timeZone: 'Asia/Shanghai',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(d);
+  const pick = (type: string) => parts.find((p) => p.type === type)?.value ?? '';
+  return `${pick('year')}-${pick('month')}-${pick('day')} ${pick('hour')}:${pick('minute')}`;
+}
+
+const stamp = formatStamp(board.generatedAt);
+---
+
+<section class="lime-board" aria-labelledby="lime-board-title">
+  <div class="lime-board-head">
+    <div>
+      <h2 id="lime-board-title" class="lime-board-title">
+        课堂排行榜
+        <span class="lime-board-kicker">LIMECTF</span>
+      </h2>
+      <p class="lime-board-sub">
+        青柠商城靶场 · {players.length} 位选手 · {totalSolves} 次解出
+      </p>
+    </div>
+    <a class="lime-board-link" href={withBase('/lime-lab/')}>
+      靶场详情<span aria-hidden="true"> →</span>
+    </a>
+  </div>
+
+  {
+    top.length === 0 ? (
+      <p class="lime-board-empty">排行榜还没有数据，课堂开始后会在这里更新。</p>
+    ) : (
+      <table class="lime-board-table">
+        <thead>
+          <tr>
+            <th scope="col" class="col-rank">#</th>
+            <th scope="col">选手</th>
+            <th scope="col" class="col-num">解出</th>
+            <th scope="col" class="col-num">得分</th>
+            <th scope="col" class="col-last">最后解出</th>
+          </tr>
+        </thead>
+        <tbody>
+          {top.map((p) => (
+            <tr>
+              <td class={`col-rank rank-${p.rank}`}>{p.rank}</td>
+              <td class="col-who">
+                <span class="nick">{p.nickname}</span>
+                <span class="handle">@{p.username}</span>
+                {p.firstBloods > 0 && (
+                  <span class="fb" title={`${p.firstBloods} 次一血`}>
+                    一血 ×{p.firstBloods}
+                  </span>
+                )}
+              </td>
+              <td class="col-num solved">{p.solved} 题</td>
+              <td class="col-num score">{p.score}</td>
+              <td class="col-last">{p.lastSolvedAt ?? '—'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    )
+  }
+
+  <p class="lime-board-foot">
+    <span>更新于 {stamp}</span>
+    <span class="lime-board-note">课堂快照，非实时 · 完整榜单见靶场页</span>
+  </p>
+</section>
+
+<style>
+  .lime-board {
+    /* 第 1～3 名的奖牌色：浅色主题用深一档，深色主题在下面覆盖 */
+    --medal-1: #b45309;
+    --medal-2: #64748b;
+    --medal-3: #9a3412;
+
+    margin: 0 0 2.75rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-elevated);
+    overflow: hidden;
+  }
+
+  :global(:root[data-theme='dark']) .lime-board {
+    --medal-1: #fbbf24;
+    --medal-2: #cbd5e1;
+    --medal-3: #fb923c;
+  }
+
+  .lime-board-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.15rem 1.25rem 0.7rem;
+  }
+
+  .lime-board-title {
+    display: flex;
+    align-items: baseline;
+    gap: 0.55rem;
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+  }
+
+  .lime-board-kicker {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    color: var(--accent);
+  }
+
+  .lime-board-sub {
+    margin: 0.3rem 0 0;
+    font-size: 0.8rem;
+    color: var(--text-faint);
+  }
+
+  .lime-board-link {
+    flex: none;
+    margin-top: 0.15rem;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+
+  .lime-board-link:hover {
+    color: var(--accent);
+  }
+
+  .lime-board-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+
+    th {
+      padding: 0.55rem 1.25rem;
+      border-top: 1px solid var(--border);
+      background: var(--bg-subtle);
+      color: var(--text-faint);
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 0.62rem 1.25rem;
+      border-top: 1px solid var(--border);
+      vertical-align: middle;
+    }
+
+    tbody tr:hover {
+      background: var(--bg-subtle);
+    }
+  }
+
+  .col-rank {
+    width: 3.2rem;
+    font-family: var(--font-mono);
+    color: var(--text-faint);
+  }
+
+  td.col-rank {
+    font-weight: 700;
+  }
+
+  .rank-1 {
+    color: var(--medal-1);
+  }
+
+  .rank-2 {
+    color: var(--medal-2);
+  }
+
+  .rank-3 {
+    color: var(--medal-3);
+  }
+
+  .nick {
+    font-weight: 600;
+  }
+
+  .handle {
+    margin-left: 0.45rem;
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+    color: var(--text-faint);
+  }
+
+  .fb {
+    display: inline-block;
+    margin-left: 0.55rem;
+    padding: 0.02rem 0.4rem;
+    border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+    border-radius: 999px;
+    color: var(--accent);
+    font-size: 0.68rem;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .col-num {
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .solved {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+
+  .score {
+    font-family: var(--font-mono);
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  .col-last {
+    width: 10.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--text-faint);
+    white-space: nowrap;
+  }
+
+  .lime-board-empty {
+    margin: 0;
+    padding: 1.6rem 1.25rem;
+    border-top: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 0.86rem;
+  }
+
+  .lime-board-foot {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.4rem 1rem;
+    margin: 0;
+    padding: 0.65rem 1.25rem 0.8rem;
+    border-top: 1px solid var(--border);
+    color: var(--text-faint);
+    font-size: 0.73rem;
+  }
+
+  .lime-board-note {
+    opacity: 0.85;
+  }
+
+  @media (width <= 640px) {
+    .lime-board-head {
+      padding: 1rem 1rem 0.6rem;
+    }
+
+    .lime-board-table {
+      font-size: 0.84rem;
+
+      th,
+      td {
+        padding-inline: 0.8rem;
+      }
+    }
+
+    .col-last {
+      display: none;
+    }
+
+    .handle {
+      display: none;
+    }
+
+    .lime-board-foot {
+      padding-inline: 0.8rem;
+    }
+  }
+</style>

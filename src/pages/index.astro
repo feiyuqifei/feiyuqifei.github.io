@@ -25,6 +25,7 @@
 import Layout from '../layouts/Layout.astro';
 import PostCard from '../components/PostCard.astro';
 import Pagination from '../components/Pagination.astro';
+import LimeBoard from '../components/LimeBoard.astro';
 import { SITE, SECTIONS, sectionHref } from '../consts';
 import { withBase } from '../utils/url';
 import {
@@ -81,6 +82,8 @@ const categories = getCategoriesWithCount(allPosts);
       ))
     }
   </section>
+
+  <LimeBoard />
 
   {
     categories.length > 0 && safePage === 1 && (

@@ -1,0 +1,24 @@
+{
+  "generatedAt": "2026-10-22T14:59:23+08:00",
+  "source": "http://10.10.122.50:18089",
+  "players": [
+    {
+      "rank": 1,
+      "nickname": "DemoBurp",
+      "username": "demo_burp",
+      "score": 200,
+      "solved": 2,
+      "firstBloods": 2,
+      "lastSolvedAt": "2026-10-22 13:08:49"
+    },
+    {
+      "rank": 2,
+      "nickname": "飞鱼",
+      "username": "admin",
+      "score": 0,
+      "solved": 0,
+      "firstBloods": 0,
+      "lastSolvedAt": null
+    }
+  ]
+}

@@ -1,121 +1,40 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8">
+<html lang="zh-CN"><head>
+<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>青柠商城 · Burp 入门靶场（课程页）</title>
-<meta name="description" content="面向 Burp 初学者的课堂靶场：4 个热身关 + 9 道 Web 题，附课程说明与成绩快照。">
+<title>ENIACCTF · 课程系列</title>
+<meta name="description" content="ENIACCTF 课程系列已迁移到线上平台：13 关 Web 实战，含 4 个 Burp 热身关与 9 道真题。">
+<meta http-equiv="refresh" content="0; url=http://139.199.228.98:18089/challenges">
+<link rel="canonical" href="http://139.199.228.98:18089/challenges">
 <style>
-:root{--bg:#070c11;--panel:#101923;--line:#1e2c3a;--ink:#e8f0f7;--mut:#8ba0b4;--lime:#bef264;--teal:#2dd4bf;--gold:#fbbf24}
+:root{--bg:#04050a;--ink:#e9f4ff;--mut:#7590a8;--cyan:#25e6ff;--magenta:#ff2e7e;
+--mono:"JetBrains Mono","Cascadia Code",Consolas,"Courier New",monospace;
+--sans:"Segoe UI","Microsoft YaHei","PingFang SC",system-ui,sans-serif}
 *{box-sizing:border-box}
-body{margin:0;background:radial-gradient(1100px 600px at 15% -10%,#0d2a26 0%,#070c11 55%);color:var(--ink);
-font:15px/1.7 "Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
-a{color:var(--teal);text-decoration:none}a:hover{color:var(--lime)}
-.wrap{width:1080px;max-width:calc(100% - 40px);margin:0 auto}
-header{border-bottom:1px solid var(--line);background:rgba(7,12,17,.9);position:sticky;top:0;z-index:9;backdrop-filter:blur(8px)}
-.hin{display:flex;align-items:center;gap:22px;height:62px}
-.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px;color:var(--ink)}
-.brand .leaf{width:12px;height:12px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:var(--lime)}
-.brand small{display:block;font-size:9px;letter-spacing:.16em;color:var(--mut);font-weight:400}
-nav{margin-left:auto;display:flex;gap:20px;font-size:13.5px}
-nav a{color:var(--mut)}nav a:hover{color:var(--lime)}
-main{padding:34px 0 70px}
-.hero{padding:20px 0 8px}
-.hero h1{font-size:34px;margin:0 0 10px;letter-spacing:-.01em}
-.hero p{color:var(--mut);max-width:760px;margin:0 0 14px}
-.badges{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 0}
-.badge{display:inline-block;padding:2px 10px;border-radius:999px;font-size:11.5px;border:1px solid var(--line);color:var(--mut)}
-.badge.lime{color:var(--lime);border-color:#3f6212;background:#1a2e05}
-.notice{margin:26px 0;padding:14px 18px;border-radius:10px;border:1px solid #3f6212;background:#14290f;color:#d9f99d;font-size:13.5px}
-h2{font-size:20px;margin:44px 0 6px;letter-spacing:.01em}
-.sub{color:var(--mut);font-size:13px;margin:0 0 16px}
-.card{background:linear-gradient(180deg,#101923,#0c141c);border:1px solid var(--line);border-radius:14px;padding:20px 22px}
-table{width:100%;border-collapse:collapse;font-size:13.5px}
-th{text-align:left;color:var(--mut);font-weight:500;font-size:12px;letter-spacing:.06em;padding:0 10px 10px}
-td{padding:11px 10px;border-top:1px solid var(--line);vertical-align:top}
-tr:last-child td{border-bottom:0}
-.rank{font:700 15px/1 Consolas,monospace;color:var(--mut);width:46px}
-.r1 .rank{color:var(--gold)}.r2 .rank{color:#cbd5e1}.r3 .rank{color:#d97706}
-.pts{color:var(--lime);font-weight:700;white-space:nowrap}
-.mono{font-family:Consolas,"Courier New",monospace}
-.mut{color:var(--mut)}
-.stage{margin:20px 0 6px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
-.stage h3{margin:0;font-size:15px}
-.stage span{color:var(--mut);font-size:12px}
-.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
-.q{background:#0e1720;border:1px solid var(--line);border-radius:12px;padding:16px 18px}
-.q h4{margin:0 0 6px;font-size:15px}
-.q .meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
-.q p{margin:0;color:var(--mut);font-size:12.5px;line-height:1.65}
-.q .goal{color:#cfe1f0;font-size:12.5px;margin-top:8px}
-.feed{list-style:none;margin:0;padding:0}
-.feed li{padding:10px 0;border-top:1px solid var(--line);font-size:13.5px}
-.feed li:first-child{border-top:0}
-.feed time{color:var(--mut);font-size:12px;margin-left:8px}
-.shots{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
-.shots figure{margin:0}
-.shots img{width:100%;border:1px solid var(--line);border-radius:10px;display:block}
-.shots figcaption{color:var(--mut);font-size:12px;margin-top:8px}
-footer{border-top:1px solid var(--line);color:var(--mut);font-size:12px;padding:24px 0 40px}
-@media(max-width:820px){.grid,.shots{grid-template-columns:1fr}nav{display:none}}
-</style></head>
+html,body{height:100%}
+body{margin:0;display:grid;place-items:center;background:
+ radial-gradient(900px 520px at 20% -10%,rgba(37,230,255,.14),transparent 60%),
+ radial-gradient(760px 460px at 90% 10%,rgba(255,46,126,.10),transparent 60%),
+ var(--bg);color:var(--ink);font-family:var(--sans);text-align:center;padding:24px}
+.box{max-width:640px}
+.brand{font:800 40px/1 var(--mono);letter-spacing:.06em;margin-bottom:18px}
+.brand i{font-style:normal;color:var(--cyan);text-shadow:0 0 22px rgba(37,230,255,.5)}
+.brand em{font-style:normal;color:var(--magenta);text-shadow:0 0 22px rgba(255,46,126,.4)}
+p{color:var(--mut);font-size:14px;line-height:1.9;margin:0 0 8px}
+a{color:var(--cyan);text-decoration:none;border-bottom:1px solid rgba(37,230,255,.35)}
+a:hover{color:#9ff5ff}
+.mono{font-family:var(--mono);font-size:12px;letter-spacing:.08em}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#d6ff3f;box-shadow:0 0 10px #d6ff3f;margin-right:8px;animation:p 1.4s infinite}
+@keyframes p{0%,100%{opacity:1}50%{opacity:.2}}
+</style>
+</head>
 <body>
-<header><div class="wrap hin">
-  <a class="brand" href="./"><span class="leaf"></span><span>青柠靶场<small>LIMEMART · BURP LAB</small></span></a>
-  <nav><a href="#path">学习路径</a><a href="#warmup">热身四关</a><a href="#board">成绩快照</a><a href="#shots">截图</a></nav>
-</div></header>
-<main class="wrap">
-  <section class="hero">
-    <h1>青柠商城 · Burp 入门靶场</h1>
-    <p>一个故意留洞的校园电商：<b>4 个 Burp 热身关 + 9 道 Web 题</b>。
-    面向刚学 Burp Suite 的初学者，顺序是「热身 → 改一个数字 → 进后台 → 后台题」，
-    不按题号从第 1 题开始。</p>
-    <div class="badges">
-      <span class="badge lime">9 道计分题</span><span class="badge">1560 分</span>
-      <span class="badge">4 个热身关</span><span class="badge">Web / Logic</span>
-      <span class="badge">Burp Community</span>
-    </div>
-    <div class="notice">这是<b>静态课程页</b>：不能在这里提交 flag，也没有实时排行榜。
-      实弹靶场（公网）：直连 <span class="mono">http://139.199.228.98:18088</span>，
-      不同网络也能直接访问；本页用于课前预习与课后归档。
-      下方成绩快照生成于 2026-10-22 13:49。</div>
-  </section>
-
-  <h2 id="path">学习路径</h2>
-  <p class="sub">按阶段发题，而不是按题号。第 3 题 IDOR 只改一个数字，适合作为第一道真题。</p>
-  <div class="stage"><h3>第 0 步 · Burp 热身（不计分）</h3><span>不计分 · 4 关 · 约 10 分钟</span></div><p class="sub">拦截改字段 / 改 Cookie / 改请求头 / Decoder 解码，约 10 分钟。做完再碰真题。</p><div class="stage"><h3>第 1 步 · 先练手：改一个数字</h3><span>1 题</span></div><p class="sub">只需要在 Burp 里把请求里的一个数字改掉。这是第 1 道要做的题。</p><div class="grid"><div class="q"><div class="meta"><span class="badge">Web</span><span class="badge">入门</span><span class="pts">100 分</span><span class="mut" style="font-size:11.5px">解出 1 人 · 一血 DemoBurp</span></div><h4>别人的订单</h4><p>订单详情页只按订单号查询，从不校验这单是不是你的。</p><p class="goal">目标：查看订单 LM1001 的备注，那里有一条结算签名。</p></div></div><div class="stage"><h3>第 2 步 · 拿到后台</h3><span>1 题</span></div><p class="sub">登录框 SQL 注入，后面 5 道后台题的前置。先做完热身和第 3 题再来。</p><div class="grid"><div class="q"><div class="meta"><span class="badge">Web</span><span class="badge">入门</span><span class="pts">100 分</span><span class="mut" style="font-size:11.5px">解出 1 人 · 一血 DemoBurp</span></div><h4>登录框的裂缝</h4><p>商城的登录接口把用户名和密码直接拼进 SQL 语句。</p><p class="goal">目标：绕过登录，进入商家后台，找到「平台公告」里的对账校验签名。</p></div></div><div class="stage"><h3>第 3 步 · 后台进阶（需管理员会话）</h3><span>5 题</span></div><p class="sub">拿到后台后按顺序做：文件读取 → 命令注入 → SSRF → XXE → 模板注入。</p><div class="grid"><div class="q"><div class="meta"><span class="badge">Web</span><span class="badge">入门</span><span class="pts">120 分</span><span class="mut" style="font-size:11.5px">解出 0 人</span></div><h4>对账单之外</h4><p>后台的对账单下载接口直接拼接文件名，没有做路径规范化。</p><p class="goal">目标：读出站点根目录下的 .env 配置文件。</p></div><div class="q"><div class="meta"><span class="badge">Web</span><span class="badge">进阶</span><span class="pts">180 分</span><span class="mut" style="font-size:11.5px">解出 0 人</span></div><h4>运维面板的回声</h4><p>「物流网关连通性测试」把主机名拼进 ping 命令后交给 shell 执行。</p><p class="goal">目标：执行额外的命令，读出环境变量 LM_LOGISTICS_KEY。</p></div><div class="q"><div class="meta"><span class="badge">Web</span><span class="badge">进阶</span><span class="pts">200 分</span><span class="mut" style="font-size:11.5px">解出 0 人</span></div><h4>内网的镜子</h4><p>后台的「商品图片远程拉取」由服务器去请求你给的 URL。</p><p class="goal">目标：让服务器访问它自己的内部接口 /_internal/status。</p></div><div class="q"><div class="meta"><span class="badge">Web</span><span class="badge">进阶</span><span class="pts">220 分</span><span class="mut" style="font-size:11.5px">解出 0 人</span></div><h4>地址簿里的小纸条</h4><p>「收货地址批量导入」用允许外部实体的解析器处理 XML。</p><p class="goal">目标：通过外部实体读出让服务器请求 /_internal/supplier 的内容。</p></div><div class="q"><div class="meta"><span class="badge">Web</span><span class="badge">高手</span><span class="pts">260 分</span><span class="mut" style="font-size:11.5px">解出 0 人</span></div><h4>短信模板的括号</h4><p>营销中心的短信模板预览，用 eval 计算 {{ }} 里的表达式。</p><p class="goal">目标：执行 Python 表达式，读出环境变量 LM_SIGN_TOKEN。</p></div></div><div class="stage"><h3>第 4 步 · 独立挑战（不用后台）</h3><span>2 题</span></div><p class="sub">一个要起监听，一个要理解业务；都不依赖前面的题。</p><div class="grid"><div class="q"><div class="meta"><span class="badge">Web</span><span class="badge">进阶</span><span class="pts">200 分</span><span class="mut" style="font-size:11.5px">解出 0 人</span></div><h4>管理员的浏览器</h4><p>商品评价会被原样渲染。被举报的评价，会由审核机器人用管理员身份打开。</p><p class="goal">目标：让机器人的浏览器执行你的脚本，把它的登录票据带出来。</p></div><div class="q"><div class="meta"><span class="badge">Logic</span><span class="badge">进阶</span><span class="pts">180 分</span><span class="mut" style="font-size:11.5px">解出 0 人</span></div><h4>负数的订单</h4><p>下单接口没有校验数量下限，金额也没做下界保护。</p><p class="goal">目标：提交一笔金额 ≤ 0 的订单，备注里会出现活动校验签名。</p></div></div>
-
-  <h2 id="warmup">热身四关（不计分）</h2>
-  <p class="sub">商城 <span class="mono">/warmup</span>，四关都由服务端判定；改页面文字不算通过。</p>
-  <div class="card"><table>
-    <thead><tr><th>关</th><th>练什么</th><th>要改什么</th><th>过关标志</th></tr></thead>
-    <tbody><tr><td class='rank'>1</td><td><b>改一个隐藏字段</b></td><td class='mut'>Proxy 拦截，把表单里的 price=299.00 改成 0.01</td><td class='mut'>服务端按 ¥0.01 成交</td></tr><tr><td class='rank'>2</td><td><b>改 Cookie</b></td><td class='mut'>把 lm_warm=guest 改成 vip</td><td class='mut'>页面显示「热身 2 / 4 通过」</td></tr><tr><td class='rank'>3</td><td><b>加一个请求头</b></td><td class='mut'>Repeater 里加 X-Lime-Debug: 1</td><td class='mut'>返回一段调试 JSON</td></tr><tr><td class='rank'>4</td><td><b>解码</b></td><td class='mut'>Decoder 把 Base64 解回明文</td><td class='mut'>回填后显示「热身 4 / 4 通过」</td></tr></tbody></table></div>
-
-  <h2 id="board">成绩快照</h2>
-  <p class="sub">生成于 2026-10-22 13:49 · 共 2 位选手 · 徽章（一血 / 全清 / 阶段 / 连击）不加分</p>
-  <div class="card"><table>
-    <thead><tr><th>#</th><th>选手</th><th>徽章</th><th>得分</th><th>进度</th><th>最后解出</th></tr></thead>
-    <tbody><tr class="r1"><td class="rank">1</td><td><b>DemoBurp</b> <span class="mut">@demo_burp</span></td><td><span class="badge">一血 x2</span></td><td class="pts">200</td><td>2 / 9</td><td class="mut">2026-10-22 13:08:49</td></tr><tr class="r2"><td class="rank">2</td><td><b>飞鱼</b> <span class="mut">@admin</span></td><td><span class="mut">—</span></td><td class="pts">0</td><td>0 / 9</td><td class="mut">-</td></tr></tbody></table></div>
-
-  <h2>最近解出</h2>
-  <div class="card"><ul class="feed"><li><b>DemoBurp</b> 解出 <span class='mono'>登录框的裂缝</span><time>40 分钟前</time></li><li><b>DemoBurp</b> 解出 <span class='mono'>别人的订单</span><time>40 分钟前</time></li></ul></div>
-
-  <h2 id="shots">现场截图</h2>
-  <p class="sub">大屏、热身页、题目页（按阶段分组）。</p>
-  <div class="shots">
-    <figure><img src="img/lime_board.png" alt="实时大屏"><figcaption>实时大屏 /board：TOP 12、进度条、二维码，10 秒刷新</figcaption></figure>
-    <figure><img src="img/lime_warmup.png" alt="热身四关"><figcaption>商城 /warmup：四关热身，服务端判定</figcaption></figure>
-    <figure><img src="img/lime_challenges.png" alt="题目列表"><figcaption>题目页：按第 0→4 步分组，第 3 题排第一</figcaption></figure>
-    <figure><img src="img/lime_share.png" alt="分享页"><figcaption>分享页：地址、二维码与多机访问自检</figcaption></figure>
-  </div>
-
-  <h2>规则</h2>
-  <div class="card"><ul class="mut" style="margin:0;padding-left:20px;line-height:2">
-    <li>只允许攻击本靶场，禁止对校园网其他设备动手。</li>
-    <li>flag 形如 <span class="mono">FLAG{lm-xxx_xxxxxxxxxxxx}</span>，首次提交正确才计分。</li>
-    <li>一血、全清、阶段通关、连击显示为徽章，不加分。</li>
-    <li>靶场故意不安全，禁止把其中写法抄进真实项目。</li>
-  </ul></div>
-</main>
-<footer class="wrap">
-  青柠商城课堂靶场 · 仅用于授权教学演练 · 页面为静态快照，实弹环境在课堂局域网。
-</footer>
+<div class="box">
+  <div class="brand"><i>ENIAC</i><em>CTF</em></div>
+  <p><span class="dot"></span>正在跳转到课程系列…</p>
+  <p class="mono">http://139.199.228.98:18089/challenges</p>
+  <p>如果没有自动跳转，<a href="http://139.199.228.98:18089/challenges">点这里进入</a>。</p>
+  <p class="mono" style="opacity:.55">13 LEVELS · 4 WARMUPS · 9 MISSIONS · 1560 PTS</p>
+</div>
+<script>location.replace("http://139.199.228.98:18089/challenges");</script>
 </body></html>

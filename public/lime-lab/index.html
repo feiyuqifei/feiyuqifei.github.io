@@ -74,9 +74,9 @@ footer{border-top:1px solid var(--line);color:var(--mut);font-size:12px;padding:
       <span class="badge">Burp Community</span>
     </div>
     <div class="notice">这是<b>静态课程页</b>：不能在这里提交 flag，也没有实时排行榜。
-      实弹靶场跑在教师机的局域网（<span class="mono">http://10.10.122.50:18088</span> 商城 /
-      <span class="mono">http://10.10.122.50:18089</span> 平台），本页用于课前预习与课后归档。
-      下方成绩快照生成于 2026-10-22 13:47。</div>
+      实弹靶场在课堂环境：同网段直连 <span class="mono">http://10.10.122.50:18088</span>，
+      不同网络由老师当堂发布公网地址（隧道模式）；本页用于课前预习与课后归档。
+      下方成绩快照生成于 2026-10-22 13:49。</div>
   </section>
 
   <h2 id="path">学习路径</h2>
@@ -90,13 +90,13 @@ footer{border-top:1px solid var(--line);color:var(--mut);font-size:12px;padding:
     <tbody><tr><td class='rank'>1</td><td><b>改一个隐藏字段</b></td><td class='mut'>Proxy 拦截，把表单里的 price=299.00 改成 0.01</td><td class='mut'>服务端按 ¥0.01 成交</td></tr><tr><td class='rank'>2</td><td><b>改 Cookie</b></td><td class='mut'>把 lm_warm=guest 改成 vip</td><td class='mut'>页面显示「热身 2 / 4 通过」</td></tr><tr><td class='rank'>3</td><td><b>加一个请求头</b></td><td class='mut'>Repeater 里加 X-Lime-Debug: 1</td><td class='mut'>返回一段调试 JSON</td></tr><tr><td class='rank'>4</td><td><b>解码</b></td><td class='mut'>Decoder 把 Base64 解回明文</td><td class='mut'>回填后显示「热身 4 / 4 通过」</td></tr></tbody></table></div>
 
   <h2 id="board">成绩快照</h2>
-  <p class="sub">生成于 2026-10-22 13:47 · 共 2 位选手 · 徽章（一血 / 全清 / 阶段 / 连击）不加分</p>
+  <p class="sub">生成于 2026-10-22 13:49 · 共 2 位选手 · 徽章（一血 / 全清 / 阶段 / 连击）不加分</p>
   <div class="card"><table>
     <thead><tr><th>#</th><th>选手</th><th>徽章</th><th>得分</th><th>进度</th><th>最后解出</th></tr></thead>
     <tbody><tr class="r1"><td class="rank">1</td><td><b>DemoBurp</b> <span class="mut">@demo_burp</span></td><td><span class="badge">一血 x2</span></td><td class="pts">200</td><td>2 / 9</td><td class="mut">2026-10-22 13:08:49</td></tr><tr class="r2"><td class="rank">2</td><td><b>飞鱼</b> <span class="mut">@admin</span></td><td><span class="mut">—</span></td><td class="pts">0</td><td>0 / 9</td><td class="mut">-</td></tr></tbody></table></div>
 
   <h2>最近解出</h2>
-  <div class="card"><ul class="feed"><li><b>DemoBurp</b> 解出 <span class='mono'>登录框的裂缝</span><time>39 分钟前</time></li><li><b>DemoBurp</b> 解出 <span class='mono'>别人的订单</span><time>39 分钟前</time></li></ul></div>
+  <div class="card"><ul class="feed"><li><b>DemoBurp</b> 解出 <span class='mono'>登录框的裂缝</span><time>40 分钟前</time></li><li><b>DemoBurp</b> 解出 <span class='mono'>别人的订单</span><time>40 分钟前</time></li></ul></div>
 
   <h2 id="shots">现场截图</h2>
   <p class="sub">大屏、热身页、题目页（按阶段分组）。</p>

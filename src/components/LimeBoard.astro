@@ -13,7 +13,6 @@
  * 安全：topic 名会出现在页面源码里，任何人都能往里发消息；页面只接受
  * 教师机 ECDSA 私钥签名的信封，验签失败直接丢弃，伪造的榜单不会上屏。
  */
-import { withBase } from '../utils/url';
 import board from '../data/lime-leaderboard.json';
 
 interface Player {
@@ -39,6 +38,10 @@ const solveCount = Number(board.solveCount) || totalSolves;
  */
 const NTFY_SERVER = 'https://ntfy.sh';
 const NTFY_TOPIC = 'limefeiyu-board-c3375f08e2a0';
+
+/* 真实靶场地址（云主机），不是 /lime-lab/ 那个静态课程页快照 */
+const LAB_URL = 'http://139.199.228.98:18088';
+const PLATFORM_URL = 'http://139.199.228.98:18089';
 const LIVE_PUBLIC_KEY =
   'MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEqCKw4mO2EjIjrXn87n8qmlScFDEyCok8CzBXCN4qLM7zCUYswlWhJ43Dv+83mqjzXUMW+GimeDRXrHFVVZGYcA==';
 
@@ -87,8 +90,13 @@ const stamp = formatStamp(board.generatedAt);
         <i class="lime-live-dot" aria-hidden="true"></i>
         <span data-lime-status>连接中…</span>
       </span>
-      <a class="lime-board-link" href={withBase('/lime-lab/')}>
-        靶场详情<span aria-hidden="true"> →</span>
+      <a
+        class="lime-board-link"
+        href={LAB_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        进入靶场<span aria-hidden="true"> →</span>
       </a>
     </div>
   </div>
@@ -132,7 +140,15 @@ const stamp = formatStamp(board.generatedAt);
     <span>数据更新于 <time data-lime-stamp>{stamp}</time></span>
     <span class="lime-board-note">
       <span data-lime-sync>正在连接实时数据…</span>
-      · 完整榜单见靶场页
+      ·
+      <a
+        class="lime-board-foot-link"
+        href={PLATFORM_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        完整榜单 / 交 flag →
+      </a>
     </span>
   </p>
 </section>
@@ -700,6 +716,16 @@ const stamp = formatStamp(board.generatedAt);
 
   .lime-board-note {
     opacity: 0.85;
+  }
+
+  .lime-board-foot-link {
+    color: var(--text-muted);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .lime-board-foot-link:hover {
+    color: var(--accent);
   }
 
   @media (width <= 640px) {

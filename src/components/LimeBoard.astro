@@ -276,7 +276,7 @@ const stamp = formatStamp(board.generatedAt);
       return tr;
     }
 
-    function render(data) {
+    function render(data, receivedAt) {
       const fragment = document.createDocumentFragment();
       if (data.players.length === 0) {
         const tr = scoped(document.createElement('tr'));
@@ -298,7 +298,7 @@ const stamp = formatStamp(board.generatedAt);
       stampEl.textContent = formatStamp(data.generatedAt);
 
       lastScores = new Map(data.players.map((p) => [p.username, p.score]));
-      lastSync = new Date();
+      lastSync = receivedAt || new Date();
       root.classList.remove('is-offline');
       setStatus('is-live', '实时同步');
       syncText.textContent = '最近同步 ' + formatClock(lastSync);
@@ -318,7 +318,7 @@ const stamp = formatStamp(board.generatedAt);
       }
     }
 
-    async function handleEnvelope(raw) {
+    async function handleEnvelope(raw, receivedAt) {
       if (!verifyKey) return;
       let envelope;
       try {
@@ -350,7 +350,7 @@ const stamp = formatStamp(board.generatedAt);
         return;
       }
       const data = normalize(payload);
-      if (data) render(data);
+      if (data) render(data, receivedAt);
     }
 
     /* 消息串行处理，避免快速连发时旧消息后到覆盖新榜单 */
@@ -364,7 +364,9 @@ const stamp = formatStamp(board.generatedAt);
             return;
           }
           if (!evt || evt.event !== 'message' || !evt.message) return;
-          await handleEnvelope(evt.message);
+          /* ntfy 的 time 是服务器收到消息的时间；重放旧消息时不能拿当前时间冒充「刚同步」 */
+          const receivedAt = Number(evt.time) > 0 ? new Date(Number(evt.time) * 1000) : new Date();
+          await handleEnvelope(evt.message, receivedAt);
         })
         .catch(() => {});
       return chain;

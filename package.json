@@ -30,6 +30,7 @@
     "assets": "python scripts/make-assets.py",
     "qr": "node scripts/make-qr.mjs",
     "sync:board": "node scripts/sync-lime-board.mjs",
+    "live:board": "node scripts/live-board.mjs",
     "astro": "astro"
   },
   "dependencies": {

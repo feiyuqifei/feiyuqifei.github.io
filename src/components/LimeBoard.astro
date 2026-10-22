@@ -2,14 +2,16 @@
 /**
  * 首页「课堂排行榜」。
  *
- * 数据来自 src/data/lime-leaderboard.json，由 scripts/sync-lime-board.mjs
- * 从 LimeCTF 平台的教师导出接口生成。首页是构建时读这份 JSON 的，
- * 所以同步完必须 push，Actions 重新构建后才会更新。
+ * 首屏读构建时的 src/data/lime-leaderboard.json（兜底快照）；
+ * 浏览器通过 ntfy 的 SSE 长连接接收教师机推送的签名数据，变化后 1~2 秒到页面。
  *
- * 刻意不做成实时：
- *   GitHub Pages 是纯静态托管，拿不到教室局域网里的平台；
- *   要真实时只能把平台暴露到公网（隧道），安全代价太大。
- *   这里定位是「课堂快照」，页脚标了更新时间，不误导读者。
+ * 为什么不用 GitHub raw / Pages：
+ *   Pages 是静态托管，同源文件更新要重新部署（约 1 分钟）；
+ *   raw 和加速节点有 5 分钟 CDN 缓存，实测做不到实时。
+ *   ntfy 的 SSE 是长连接、支持 CORS、不需要账号，适合课堂这种短时高频更新。
+ *
+ * 安全：topic 名会出现在页面源码里，任何人都能往里发消息；页面只接受
+ * 教师机 ECDSA 私钥签名的信封，验签失败直接丢弃，伪造的榜单不会上屏。
  */
 import { withBase } from '../utils/url';
 import board from '../data/lime-leaderboard.json';
@@ -27,8 +29,20 @@ interface Player {
 const players: Player[] = Array.isArray(board.players) ? board.players : [];
 const top = players.slice(0, 5);
 const totalSolves = players.reduce((n, p) => n + p.solved, 0);
+const playerCount = Number(board.playerCount) || players.length;
+const solveCount = Number(board.solveCount) || totalSolves;
 
-/** 把 ISO 时间按北京时间显示成 2026-10-22 14:59，避免服务器时区影响。 */
+/**
+ * ntfy 实时通道与验签公钥。
+ * 私钥在教师机的 _tools/lab-secrets/live-board-key.json，不在仓库里；
+ * 换密钥时把 scripts/live-board.mjs 生成的公钥同步改到这里。
+ */
+const NTFY_SERVER = 'https://ntfy.sh';
+const NTFY_TOPIC = 'limefeiyu-board-c3375f08e2a0';
+const LIVE_PUBLIC_KEY =
+  'MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEqCKw4mO2EjIjrXn87n8qmlScFDEyCok8CzBXCN4qLM7zCUYswlWhJ43Dv+83mqjzXUMW+GimeDRXrHFVVZGYcA==';
+
+/** 按北京时间显示成 2026-10-22 15:30，避免观众所在时区影响。 */
 function formatStamp(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
@@ -48,7 +62,14 @@ function formatStamp(iso: string): string {
 const stamp = formatStamp(board.generatedAt);
 ---
 
-<section class="lime-board" aria-labelledby="lime-board-title">
+<section
+  class="lime-board"
+  data-lime-board
+  data-ntfy-server={NTFY_SERVER}
+  data-ntfy-topic={NTFY_TOPIC}
+  data-public-key={LIVE_PUBLIC_KEY}
+  aria-labelledby="lime-board-title"
+>
   <div class="lime-board-head">
     <div>
       <h2 id="lime-board-title" class="lime-board-title">
@@ -56,56 +77,368 @@ const stamp = formatStamp(board.generatedAt);
         <span class="lime-board-kicker">LIMECTF</span>
       </h2>
       <p class="lime-board-sub">
-        青柠商城靶场 · {players.length} 位选手 · {totalSolves} 次解出
+        青柠商城靶场 ·
+        <span data-lime-players>{playerCount}</span> 位选手 ·
+        <span data-lime-solves>{solveCount}</span> 次解出
       </p>
     </div>
-    <a class="lime-board-link" href={withBase('/lime-lab/')}>
-      靶场详情<span aria-hidden="true"> →</span>
-    </a>
+    <div class="lime-board-side">
+      <span class="lime-live is-pending" data-lime-live>
+        <i class="lime-live-dot" aria-hidden="true"></i>
+        <span data-lime-status>连接中…</span>
+      </span>
+      <a class="lime-board-link" href={withBase('/lime-lab/')}>
+        靶场详情<span aria-hidden="true"> →</span>
+      </a>
+    </div>
   </div>
 
-  {
-    top.length === 0 ? (
-      <p class="lime-board-empty">排行榜还没有数据，课堂开始后会在这里更新。</p>
-    ) : (
-      <table class="lime-board-table">
-        <thead>
-          <tr>
-            <th scope="col" class="col-rank">#</th>
-            <th scope="col">选手</th>
-            <th scope="col" class="col-num">解出</th>
-            <th scope="col" class="col-num">得分</th>
-            <th scope="col" class="col-last">最后解出</th>
-          </tr>
-        </thead>
-        <tbody>
-          {top.map((p) => (
+  <table class="lime-board-table">
+    <thead>
+      <tr>
+        <th scope="col" class="col-rank">#</th>
+        <th scope="col">选手</th>
+        <th scope="col" class="col-num">解出</th>
+        <th scope="col" class="col-num">得分</th>
+        <th scope="col" class="col-last">最后解出</th>
+      </tr>
+    </thead>
+    <tbody data-lime-rows>
+      {
+        top.length > 0 ? (
+          top.map((p) => (
             <tr>
               <td class={`col-rank rank-${p.rank}`}>{p.rank}</td>
               <td class="col-who">
                 <span class="nick">{p.nickname}</span>
                 <span class="handle">@{p.username}</span>
-                {p.firstBloods > 0 && (
-                  <span class="fb" title={`${p.firstBloods} 次一血`}>
-                    一血 ×{p.firstBloods}
-                  </span>
-                )}
+                {p.firstBloods > 0 && <span class="fb">一血 ×{p.firstBloods}</span>}
               </td>
               <td class="col-num solved">{p.solved} 题</td>
               <td class="col-num score">{p.score}</td>
               <td class="col-last">{p.lastSolvedAt ?? '—'}</td>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    )
-  }
+          ))
+        ) : (
+          <tr>
+            <td colspan="5" class="lime-board-empty">排行榜还没有数据，课堂开始后会在这里更新。</td>
+          </tr>
+        )
+      }
+    </tbody>
+  </table>
 
   <p class="lime-board-foot">
-    <span>更新于 {stamp}</span>
-    <span class="lime-board-note">课堂快照，非实时 · 完整榜单见靶场页</span>
+    <span>数据更新于 <time data-lime-stamp>{stamp}</time></span>
+    <span class="lime-board-note">
+      <span data-lime-sync>正在连接实时数据…</span>
+      · 完整榜单见靶场页
+    </span>
   </p>
 </section>
+
+<script is:inline>
+  (() => {
+    const root = document.querySelector('[data-lime-board]');
+    if (!root) return;
+
+    const tbody = root.querySelector('[data-lime-rows]');
+    const statusEl = root.querySelector('[data-lime-live]');
+    const statusText = root.querySelector('[data-lime-status]');
+    const syncText = root.querySelector('[data-lime-sync]');
+    const stampEl = root.querySelector('[data-lime-stamp]');
+    const playersEl = root.querySelector('[data-lime-players]');
+    const solvesEl = root.querySelector('[data-lime-solves]');
+
+    const server = (root.dataset.ntfyServer || '').replace(/\/+$/, '');
+    const topic = root.dataset.ntfyTopic || '';
+    const publicKeyB64 = root.dataset.publicKey || '';
+    if (!server || !topic || !publicKeyB64 || !tbody) return;
+
+    const MAX_ROWS = 5;
+    const POLL_MS = 10000;
+
+    let verifyKey = null;
+    let lastSync = null;
+    let lastScores = new Map();
+    let eventSource = null;
+    let pollTimer = null;
+    let polling = false;
+    let errorCount = 0;
+    let chain = Promise.resolve();
+
+    const text = (v) => String(v == null ? '' : v);
+    const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+
+    function b64ToBytes(b64) {
+      const bin = atob(b64);
+      const out = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i += 1) out[i] = bin.charCodeAt(i);
+      return out;
+    }
+
+    function b64urlToBytes(s) {
+      let v = String(s).replace(/-/g, '+').replace(/_/g, '/');
+      const pad = v.length % 4;
+      if (pad) v += '='.repeat(4 - pad);
+      return b64ToBytes(v);
+    }
+
+    function formatStamp(iso) {
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return text(iso);
+      const parts = new Intl.DateTimeFormat('zh-CN', {
+        timeZone: 'Asia/Shanghai',
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', hour12: false,
+      }).formatToParts(d);
+      const pick = (t) => (parts.find((p) => p.type === t) || {}).value || '';
+      return pick('year') + '-' + pick('month') + '-' + pick('day') + ' ' + pick('hour') + ':' + pick('minute');
+    }
+
+    function formatClock(d) {
+      return d.toLocaleTimeString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false });
+    }
+
+    function setStatus(state, label) {
+      statusEl.classList.remove('is-pending', 'is-live', 'is-offline');
+      statusEl.classList.add(state);
+      statusText.textContent = label;
+    }
+
+    function normalize(data) {
+      if (!data || !Array.isArray(data.players)) return null;
+      const players = data.players
+        .slice(0, MAX_ROWS)
+        .map((p, i) => ({
+          rank: num(p.rank) || i + 1,
+          nickname: text(p.nickname || p.username).slice(0, 40),
+          username: text(p.username).slice(0, 40),
+          score: num(p.score),
+          solved: num(p.solved),
+          firstBloods: num(p.firstBloods),
+          lastSolvedAt: p.lastSolvedAt ? text(p.lastSolvedAt).slice(0, 30) : null,
+        }))
+        .filter((p) => p.username);
+      return {
+        generatedAt: text(data.generatedAt),
+        playerCount: num(data.playerCount) || players.length,
+        solveCount: num(data.solveCount) || players.reduce((n, p) => n + p.solved, 0),
+        players,
+      };
+    }
+
+    function cell(className, value) {
+      const td = document.createElement('td');
+      td.className = className;
+      td.textContent = value;
+      return td;
+    }
+
+    function rowFor(player, isNew) {
+      const tr = document.createElement('tr');
+      if (isNew) tr.className = 'is-updated';
+
+      const rank = document.createElement('td');
+      rank.className = 'col-rank rank-' + player.rank;
+      rank.textContent = String(player.rank);
+      tr.appendChild(rank);
+
+      const who = document.createElement('td');
+      who.className = 'col-who';
+      const nick = document.createElement('span');
+      nick.className = 'nick';
+      nick.textContent = player.nickname;
+      const handle = document.createElement('span');
+      handle.className = 'handle';
+      handle.textContent = '@' + player.username;
+      who.appendChild(nick);
+      who.appendChild(handle);
+      if (player.firstBloods > 0) {
+        const fb = document.createElement('span');
+        fb.className = 'fb';
+        fb.textContent = '一血 ×' + player.firstBloods;
+        who.appendChild(fb);
+      }
+      tr.appendChild(who);
+
+      tr.appendChild(cell('col-num solved', player.solved + ' 题'));
+      tr.appendChild(cell('col-num score', String(player.score)));
+      tr.appendChild(cell('col-last', player.lastSolvedAt || '—'));
+      return tr;
+    }
+
+    function render(data) {
+      const fragment = document.createDocumentFragment();
+      if (data.players.length === 0) {
+        const tr = document.createElement('tr');
+        const td = cell('lime-board-empty', '排行榜还没有数据，课堂开始后会在这里更新。');
+        td.colSpan = 5;
+        tr.appendChild(td);
+        fragment.appendChild(tr);
+      } else {
+        data.players.forEach((p) => {
+          const before = lastScores.get(p.username);
+          const isNew = before !== undefined && p.score > before;
+          fragment.appendChild(rowFor(p, isNew));
+        });
+      }
+      tbody.replaceChildren(fragment);
+
+      playersEl.textContent = String(data.playerCount);
+      solvesEl.textContent = String(data.solveCount);
+      stampEl.textContent = formatStamp(data.generatedAt);
+
+      lastScores = new Map(data.players.map((p) => [p.username, p.score]));
+      lastSync = new Date();
+      root.classList.remove('is-offline');
+      setStatus('is-live', '实时同步');
+      syncText.textContent = '最近同步 ' + formatClock(lastSync);
+    }
+
+    async function setupKey() {
+      try {
+        verifyKey = await crypto.subtle.importKey(
+          'spki',
+          b64ToBytes(publicKeyB64),
+          { name: 'ECDSA', namedCurve: 'P-256' },
+          false,
+          ['verify'],
+        );
+      } catch (e) {
+        setStatus('is-offline', '验签不可用');
+      }
+    }
+
+    async function handleEnvelope(raw) {
+      if (!verifyKey) return;
+      let envelope;
+      try {
+        envelope = JSON.parse(raw);
+      } catch (e) {
+        return;
+      }
+      if (!envelope || envelope.v !== 1 || !envelope.d || !envelope.s) return;
+
+      const dataBytes = b64urlToBytes(envelope.d);
+      const sigBytes = b64urlToBytes(envelope.s);
+      let ok = false;
+      try {
+        ok = await crypto.subtle.verify(
+          { name: 'ECDSA', hash: 'SHA-256' },
+          verifyKey,
+          sigBytes,
+          dataBytes,
+        );
+      } catch (e) {
+        ok = false;
+      }
+      if (!ok) return;
+
+      let payload;
+      try {
+        payload = JSON.parse(new TextDecoder().decode(dataBytes));
+      } catch (e) {
+        return;
+      }
+      const data = normalize(payload);
+      if (data) render(data);
+    }
+
+    /* 消息串行处理，避免快速连发时旧消息后到覆盖新榜单 */
+    function handleEvent(raw) {
+      chain = chain
+        .then(async () => {
+          let evt;
+          try {
+            evt = JSON.parse(raw);
+          } catch (e) {
+            return;
+          }
+          if (!evt || evt.event !== 'message' || !evt.message) return;
+          await handleEnvelope(evt.message);
+        })
+        .catch(() => {});
+      return chain;
+    }
+
+    /* SSE 被网络中间层掐掉时的兜底：每 10 秒轮询一次 ntfy 的 JSON 接口 */
+    function startPolling() {
+      if (polling) return;
+      polling = true;
+      let since = '30m';
+      const tick = async () => {
+        try {
+          const res = await fetch(
+            server + '/' + encodeURIComponent(topic) + '/json?poll=1&since=' + since,
+            { cache: 'no-store' },
+          );
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          const body = await res.text();
+          for (const line of body.split('\n')) {
+            if (!line.trim()) continue;
+            let evt;
+            try {
+              evt = JSON.parse(line);
+            } catch (e) {
+              continue;
+            }
+            if (evt.id) since = evt.id;
+            await handleEvent(line);
+          }
+          setStatus('is-live', '实时同步');
+          if (!lastSync) syncText.textContent = '已连接，等待更新';
+        } catch (e) {
+          setStatus('is-offline', '同步中断');
+        }
+        pollTimer = setTimeout(tick, POLL_MS);
+      };
+      tick();
+    }
+
+    function stopPolling() {
+      polling = false;
+      clearTimeout(pollTimer);
+    }
+
+    function connect() {
+      if (!('EventSource' in window)) {
+        startPolling();
+        return;
+      }
+      try {
+        eventSource = new EventSource(
+          server + '/' + encodeURIComponent(topic) + '/sse?since=30m',
+        );
+      } catch (e) {
+        startPolling();
+        return;
+      }
+
+      eventSource.onopen = () => {
+        errorCount = 0;
+        stopPolling();
+        setStatus('is-live', '实时同步');
+        if (!lastSync) syncText.textContent = '已连接，等待更新';
+      };
+
+      eventSource.onmessage = (event) => {
+        handleEvent(event.data);
+      };
+
+      eventSource.onerror = () => {
+        errorCount += 1;
+        setStatus('is-offline', '重连中…');
+        /* 连续失败 3 次才切轮询，避免一次网络抖动就永久降级 */
+        if (errorCount >= 3) startPolling();
+      };
+    }
+
+    setupKey().then(() => {
+      if (verifyKey) connect();
+    });
+  })();
+</script>
 
 <style>
   .lime-board {
@@ -159,9 +492,15 @@ const stamp = formatStamp(board.generatedAt);
     color: var(--text-faint);
   }
 
-  .lime-board-link {
+  .lime-board-side {
+    display: flex;
     flex: none;
-    margin-top: 0.15rem;
+    align-items: center;
+    gap: 0.8rem;
+    margin-top: 0.1rem;
+  }
+
+  .lime-board-link {
     font-size: 0.82rem;
     color: var(--text-muted);
     white-space: nowrap;
@@ -169,6 +508,53 @@ const stamp = formatStamp(board.generatedAt);
 
   .lime-board-link:hover {
     color: var(--accent);
+  }
+
+  /* 「实时同步」状态：连接中 / 已连接 / 中断三态 */
+  .lime-live {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.12rem 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font-size: 0.7rem;
+    color: var(--text-faint);
+    white-space: nowrap;
+    transition: color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+  }
+
+  .lime-live-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  .lime-live.is-live {
+    color: var(--accent);
+    border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+  }
+
+  .lime-live.is-live .lime-live-dot {
+    animation: lime-pulse 1.8s ease-out infinite;
+  }
+
+  .lime-live.is-offline {
+    color: #d97706;
+    border-color: color-mix(in srgb, #d97706 40%, transparent);
+  }
+
+  @keyframes lime-pulse {
+    0% {
+      box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent);
+    }
+    70% {
+      box-shadow: 0 0 0 6px transparent;
+    }
+    100% {
+      box-shadow: 0 0 0 0 transparent;
+    }
   }
 
   .lime-board-table {
@@ -196,6 +582,20 @@ const stamp = formatStamp(board.generatedAt);
 
     tbody tr:hover {
       background: var(--bg-subtle);
+    }
+  }
+
+  /* 新解出的一行短暂高亮，让「实时」有可见的反馈 */
+  .lime-board-table tbody tr.is-updated {
+    animation: lime-row-flash 2.4s var(--ease-out);
+  }
+
+  @keyframes lime-row-flash {
+    0% {
+      background: var(--accent-soft);
+    }
+    100% {
+      background: transparent;
     }
   }
 
@@ -270,11 +670,10 @@ const stamp = formatStamp(board.generatedAt);
   }
 
   .lime-board-empty {
-    margin: 0;
     padding: 1.6rem 1.25rem;
-    border-top: 1px solid var(--border);
     color: var(--text-muted);
     font-size: 0.86rem;
+    text-align: center;
   }
 
   .lime-board-foot {
@@ -296,6 +695,12 @@ const stamp = formatStamp(board.generatedAt);
   @media (width <= 640px) {
     .lime-board-head {
       padding: 1rem 1rem 0.6rem;
+    }
+
+    .lime-board-side {
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0.35rem;
     }
 
     .lime-board-table {

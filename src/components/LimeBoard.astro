@@ -158,6 +158,14 @@ const stamp = formatStamp(board.generatedAt);
     const MAX_ROWS = 5;
     const POLL_MS = 10000;
 
+    /* Astro 的 scoped CSS 靠 data-astro-cid-* 属性匹配；JS 新建的行没有这个属性，
+       样式会整块掉光（名次不变色、时间不 nowrap）。把根节点的 scope 属性复制过去。 */
+    const scopeAttrs = Array.from(root.attributes).filter((a) => a.name.startsWith('data-astro-cid-'));
+    function scoped(el) {
+      for (const attr of scopeAttrs) el.setAttribute(attr.name, attr.value);
+      return el;
+    }
+
     let verifyKey = null;
     let lastSync = null;
     let lastScores = new Map();
@@ -229,33 +237,33 @@ const stamp = formatStamp(board.generatedAt);
     }
 
     function cell(className, value) {
-      const td = document.createElement('td');
+      const td = scoped(document.createElement('td'));
       td.className = className;
       td.textContent = value;
       return td;
     }
 
     function rowFor(player, isNew) {
-      const tr = document.createElement('tr');
+      const tr = scoped(document.createElement('tr'));
       if (isNew) tr.className = 'is-updated';
 
-      const rank = document.createElement('td');
+      const rank = scoped(document.createElement('td'));
       rank.className = 'col-rank rank-' + player.rank;
       rank.textContent = String(player.rank);
       tr.appendChild(rank);
 
-      const who = document.createElement('td');
+      const who = scoped(document.createElement('td'));
       who.className = 'col-who';
-      const nick = document.createElement('span');
+      const nick = scoped(document.createElement('span'));
       nick.className = 'nick';
       nick.textContent = player.nickname;
-      const handle = document.createElement('span');
+      const handle = scoped(document.createElement('span'));
       handle.className = 'handle';
       handle.textContent = '@' + player.username;
       who.appendChild(nick);
       who.appendChild(handle);
       if (player.firstBloods > 0) {
-        const fb = document.createElement('span');
+        const fb = scoped(document.createElement('span'));
         fb.className = 'fb';
         fb.textContent = '一血 ×' + player.firstBloods;
         who.appendChild(fb);
@@ -271,7 +279,7 @@ const stamp = formatStamp(board.generatedAt);
     function render(data) {
       const fragment = document.createDocumentFragment();
       if (data.players.length === 0) {
-        const tr = document.createElement('tr');
+        const tr = scoped(document.createElement('tr'));
         const td = cell('lime-board-empty', '排行榜还没有数据，课堂开始后会在这里更新。');
         td.colSpan = 5;
         tr.appendChild(td);

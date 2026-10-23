@@ -26,7 +26,7 @@ interface Player {
 }
 
 const players: Player[] = Array.isArray(board.players) ? board.players : [];
-const top = players.slice(0, 20);
+const top = players.slice(0, 5);
 const totalSolves = players.reduce((n, p) => n + p.solved, 0);
 const playerCount = Number(board.playerCount) || players.length;
 const solveCount = Number(board.solveCount) || totalSolves;
@@ -179,7 +179,7 @@ const stamp = formatStamp(board.generatedAt);
     const publicKeyB64 = root.dataset.publicKey || '';
     if (!server || !topic || !publicKeyB64 || !tbody) return;
 
-    const MAX_ROWS = 20;
+    const MAX_ROWS = 5;
     const POLL_MS = 10000;
 
     /* Astro 的 scoped CSS 靠 data-astro-cid-* 属性匹配；JS 新建的行没有这个属性，

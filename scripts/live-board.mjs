@@ -96,9 +96,9 @@ function loadKey(explicit) {
   throw new Error('找不到 live-board-key.json；用 --key 指定，或重新生成密钥并更新组件里的公钥');
 }
 
-/** 只发首页需要的字段：前 20 名 + 总人数/总解出，控制 ntfy 单条 4KB 限制。 */
+/** 只发首页需要的字段：前 5 名 + 总人数/总解出，控制 ntfy 单条 4KB 限制。 */
 function compactPayload({ source, players }) {
-  const top = players.slice(0, 20);
+  const top = players.slice(0, 5);
   return {
     v: 1,
     generatedAt: localIso(),

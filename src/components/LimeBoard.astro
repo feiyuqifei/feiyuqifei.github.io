@@ -127,6 +127,7 @@ const stamp = formatStamp(board.generatedAt);
               <td class={`col-rank rank-${p.rank}`}>{p.rank}</td>
               <td class="col-who">
                 <span class="nick">{p.nickname}</span>
+                <span class="handle">@{p.username}</span>
                 {p.firstBloods > 0 && <span class="fb">一血 ×{p.firstBloods}</span>}
               </td>
               <td class="col-num solved">{p.solved} 题</td>
@@ -244,13 +245,13 @@ const stamp = formatStamp(board.generatedAt);
         .map((p, i) => ({
           rank: num(p.rank) || i + 1,
           nickname: text(p.nickname || p.username).slice(0, 40),
-          username: text(p.nickname || p.username).slice(0, 40),
+          username: text(p.username).slice(0, 40),
           score: num(p.score),
           solved: num(p.solved),
           firstBloods: num(p.firstBloods),
           lastSolvedAt: p.lastSolvedAt ? text(p.lastSolvedAt).slice(0, 30) : null,
         }))
-        .filter((p) => p.nickname);
+        .filter((p) => p.username);
       return {
         generatedAt: text(data.generatedAt),
         playerCount: num(data.playerCount) || players.length,
@@ -280,7 +281,11 @@ const stamp = formatStamp(board.generatedAt);
       const nick = scoped(document.createElement('span'));
       nick.className = 'nick';
       nick.textContent = player.nickname;
+      const handle = scoped(document.createElement('span'));
+      handle.className = 'handle';
+      handle.textContent = '@' + player.username;
       who.appendChild(nick);
+      who.appendChild(handle);
       if (player.firstBloods > 0) {
         const fb = scoped(document.createElement('span'));
         fb.className = 'fb';
@@ -305,7 +310,7 @@ const stamp = formatStamp(board.generatedAt);
         fragment.appendChild(tr);
       } else {
         data.players.forEach((p) => {
-          const before = lastScores.get(p.nickname);
+          const before = lastScores.get(p.username);
           const isNew = before !== undefined && p.score > before;
           fragment.appendChild(rowFor(p, isNew));
         });
@@ -316,7 +321,7 @@ const stamp = formatStamp(board.generatedAt);
       solvesEl.textContent = String(data.solveCount);
       stampEl.textContent = formatStamp(data.generatedAt);
 
-      lastScores = new Map(data.players.map((p) => [p.nickname, p.score]));
+      lastScores = new Map(data.players.map((p) => [p.username, p.score]));
       lastSync = receivedAt || new Date();
       root.classList.remove('is-offline');
       setStatus('is-live', '实时同步');

@@ -128,7 +128,6 @@ export async function discoverToken({ token = '', secrets = '' } = {}) {
  */
 export async function fetchBoard({ url, token, timeout = 12000 }) {
   const endpoint = new URL('/export', url);
-  endpoint.searchParams.set('public', '1');
   endpoint.searchParams.set('token', token);
 
   const res = await fetch(endpoint, {

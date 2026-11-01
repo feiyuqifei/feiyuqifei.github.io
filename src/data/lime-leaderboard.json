@@ -1,22 +1,121 @@
 {
-  "generatedAt": "2026-10-22T15:38:22+08:00",
-  "source": "http://10.10.122.50:18089",
-  "playerCount": 2,
-  "solveCount": 2,
+  "generatedAt": "2026-11-01T23:27:00+08:00",
+  "source": "http://127.0.0.1:18089",
+  "playerCount": 13,
+  "solveCount": 42,
   "players": [
     {
       "rank": 1,
-      "nickname": "DemoBurp",
-      "username": "demo_burp",
-      "score": 200,
-      "solved": 2,
-      "firstBloods": 2,
-      "lastSolvedAt": "2026-10-22 13:08:49"
+      "nickname": "Sean",
+      "username": "Sean",
+      "score": 1760,
+      "solved": 11,
+      "firstBloods": 1,
+      "lastSolvedAt": "2026-10-27 17:00:08"
     },
     {
       "rank": 2,
+      "nickname": "绿色荧光蛋白",
+      "username": "GreenFT",
+      "score": 1760,
+      "solved": 11,
+      "firstBloods": 9,
+      "lastSolvedAt": "2026-10-28 21:30:56"
+    },
+    {
+      "rank": 3,
+      "nickname": "中出",
+      "username": "ZRX",
+      "score": 1300,
+      "solved": 8,
+      "firstBloods": 2,
+      "lastSolvedAt": "2026-10-30 18:04:31"
+    },
+    {
+      "rank": 4,
+      "nickname": "百木山兮",
+      "username": "HK416",
+      "score": 1180,
+      "solved": 7,
+      "firstBloods": 0,
+      "lastSolvedAt": "2026-10-28 21:14:09"
+    },
+    {
+      "rank": 5,
+      "nickname": "王骏宏",
+      "username": "fen",
+      "score": 500,
+      "solved": 4,
+      "firstBloods": 0,
+      "lastSolvedAt": "2026-10-23 21:34:57"
+    },
+    {
+      "rank": 6,
+      "nickname": "lxy",
+      "username": "lxy",
+      "score": 100,
+      "solved": 1,
+      "firstBloods": 0,
+      "lastSolvedAt": "2026-10-23 17:01:36"
+    },
+    {
+      "rank": 7,
       "nickname": "飞鱼",
-      "username": "admin",
+      "username": "feiyu",
+      "score": 0,
+      "solved": 0,
+      "firstBloods": 0,
+      "lastSolvedAt": null
+    },
+    {
+      "rank": 8,
+      "nickname": ".",
+      "username": "zgs_1119",
+      "score": 0,
+      "solved": 0,
+      "firstBloods": 0,
+      "lastSolvedAt": null
+    },
+    {
+      "rank": 9,
+      "nickname": "Escape",
+      "username": "Escape",
+      "score": 0,
+      "solved": 0,
+      "firstBloods": 0,
+      "lastSolvedAt": null
+    },
+    {
+      "rank": 10,
+      "nickname": "ltg",
+      "username": "ltg",
+      "score": 0,
+      "solved": 0,
+      "firstBloods": 0,
+      "lastSolvedAt": null
+    },
+    {
+      "rank": 11,
+      "nickname": "一勺勺",
+      "username": "111",
+      "score": 0,
+      "solved": 0,
+      "firstBloods": 0,
+      "lastSolvedAt": null
+    },
+    {
+      "rank": 12,
+      "nickname": "Sakayori_Iroha511",
+      "username": "SakayoriIroha",
+      "score": 0,
+      "solved": 0,
+      "firstBloods": 0,
+      "lastSolvedAt": null
+    },
+    {
+      "rank": 13,
+      "nickname": "718陆既明",
+      "username": "110911",
       "score": 0,
       "solved": 0,
       "firstBloods": 0,

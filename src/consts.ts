@@ -505,14 +505,14 @@ export const COMPETITION_RECORDS: CompetitionRecord[] = [
   {
     year: 2026,
     name: '强网杯 全国网络安全挑战赛',
-    rank: '第 303 / 334 / 964 / 1573 名',
+    rank: '第 303 / 964 / 334 / 1573 名（按 1–4 队）',
     teams: [
-      'ENIACZeroalpha（黄光辉）',
-      'ENIACZeroGamma（李文乐）',
-      'ENIACZeroBeta（刘嘉敏）',
-      'ENIACZeroPrime（邓易铭）',
+      'ENIAC Zero-alpha（黄光辉）',
+      'ENIAC Zero Beta（李文乐）',
+      'ENIAC Zero Gamma（刘嘉敏）',
+      'ENIAC Zero Prime（邓易铭）',
     ],
-    note: '第十届强网杯全国网络安全挑战赛最终队伍排名：ENIACZeroalpha（队长黄光辉）第 303 名（2001.42 分）、ENIACZeroGamma（队长李文乐）第 334 名（1900 分）、ENIACZeroBeta（队长刘嘉敏）第 964 名（500 分）、ENIACZeroPrime（队长邓易铭）第 1573 名（100 分）。',
+    note: '第十届强网杯全国网络安全挑战赛最终队伍排名：1 队 ENIAC Zero-alpha（队长黄光辉）第 303 名（2001.42 分）；2 队 ENIAC Zero Beta（队长李文乐）第 964 名（500 分）；3 队 ENIAC Zero Gamma（队长刘嘉敏）第 334 名（1900 分）；4 队 ENIAC Zero Prime（队长邓易铭）第 1573 名（100 分）。',
   },
 ];
 

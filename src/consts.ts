@@ -505,30 +505,14 @@ export const COMPETITION_RECORDS: CompetitionRecord[] = [
   {
     year: 2026,
     name: '强网杯 全国网络安全挑战赛',
-    rank: '第 303 名 · 2001.42 分',
-    teams: ['ENIACZeroalpha'],
-    note: '第九届强网杯全国网络安全挑战赛最终队伍排名。',
-  },
-  {
-    year: 2026,
-    name: '强网杯 全国网络安全挑战赛',
-    rank: '第 334 名 · 1900 分',
-    teams: ['ENIACZeroGamma'],
-    note: '第九届强网杯全国网络安全挑战赛最终队伍排名。',
-  },
-  {
-    year: 2026,
-    name: '强网杯 全国网络安全挑战赛',
-    rank: '第 964 名 · 500 分',
-    teams: ['ENIACZeroBeta'],
-    note: '第九届强网杯全国网络安全挑战赛最终队伍排名。',
-  },
-  {
-    year: 2026,
-    name: '强网杯 全国网络安全挑战赛',
-    rank: '第 1573 名 · 100 分',
-    teams: ['ENIACZeroPrime'],
-    note: '第九届强网杯全国网络安全挑战赛最终队伍排名。',
+    rank: '第 303 / 334 / 964 / 1573 名',
+    teams: [
+      'ENIACZeroalpha',
+      'ENIACZeroGamma',
+      'ENIACZeroBeta',
+      'ENIACZeroPrime',
+    ],
+    note: '第十届强网杯全国网络安全挑战赛最终队伍排名：ENIACZeroalpha 第 303 名（2001.42 分）、ENIACZeroGamma 第 334 名（1900 分）、ENIACZeroBeta 第 964 名（500 分）、ENIACZeroPrime 第 1573 名（100 分）。',
   },
 ];
 

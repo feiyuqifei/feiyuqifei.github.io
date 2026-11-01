@@ -339,7 +339,7 @@ const recordYears = (() => {
                       {r.category && <span class="comp-badge">{r.category}</span>}
                     </div>
 
-                    {(r.rank || r.teams?.length || r.teammates?.length) && (
+                    {(r.rank || r.teams?.length || r.participants?.length || r.teammates?.length) && (
                       <dl class="comp-fields">
                         {r.rank && (
                           <>
@@ -351,6 +351,12 @@ const recordYears = (() => {
                           <>
                             <dt>参赛队</dt>
                             <dd>{r.teams.join('、')}</dd>
+                          </>
+                        )}
+                        {r.participants && r.participants.length > 0 && (
+                          <>
+                            <dt>参赛人</dt>
+                            <dd>{r.participants.join('、')}</dd>
                           </>
                         )}
                         {r.teammates && r.teammates.length > 0 && (

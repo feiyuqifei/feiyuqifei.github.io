@@ -402,6 +402,8 @@ export interface CompetitionRecord {
    * 也可能只记得队名不记得队员，所以分成两个字段。
    */
   teams?: string[];
+  /** 个人赛参赛人。与 teams 区分：这里填人，不是队名 */
+  participants?: string[];
   /** 队友。个人赛留空。这里填姓名，不是队名 */
   teammates?: string[];
   /**
@@ -467,6 +469,7 @@ export const COMPETITION_RECORDS: CompetitionRecord[] = [
       ISCC 由北京理工大学发起，2004 年国内首创，2026 年为第 23 届。
     */
     rank: '600 / 10000',
+    participants: ['黄光辉'],
     note: 'ISCC2026（第 23 届）。官网简况显示本届线上挑战赛共 12700 余人报名，覆盖中小学生、大学生与研究生。',
   },
   {

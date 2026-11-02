@@ -508,14 +508,13 @@ export const COMPETITION_RECORDS: CompetitionRecord[] = [
   {
     year: 2026,
     name: '强网杯 全国网络安全挑战赛',
-    rank: '第 303 / 334 / 964 / 1573 名',
+    rank: '第 244 / 334 / 619 名',
     teams: [
       'ENIAC Zero-alpha（1 队 · 队长：黄光辉）',
       'ENIAC Zero Gamma（3 队 · 队长：刘嘉敏）',
       'ENIAC Zero Beta（2 队 · 队长：李文乐）',
-      'ENIAC Zero Prime（4 队 · 队长：邓易铭）',
     ],
-    note: '第十届强网杯全国网络安全挑战赛最终队伍排名（按名次排序）：1 队 ENIAC Zero-alpha（队长黄光辉）第 303 名（2001.42 分）；3 队 ENIAC Zero Gamma（队长刘嘉敏）第 334 名（1900 分）；2 队 ENIAC Zero Beta（队长李文乐）第 964 名（500 分）；4 队 ENIAC Zero Prime（队长邓易铭）第 1573 名（100 分）。',
+    note: '第十届强网杯全国网络安全挑战赛有成绩的三个队：1 队 ENIAC Zero-alpha（队长黄光辉，PWN，16 题）第 244 名（1601.42 分）；3 队 ENIAC Zero Gamma（队长刘嘉敏）第 334 名（1900 分），得分成员林思远（Web，12 题，1200 分）、刘显才（PWN，5 题，500 分）、张润鑫（PWN，2 题，200 分）；2 队 ENIAC Zero Beta（队长李文乐，Crypto，5 题）第 619 名（500 分）。',
   },
 ];
 
